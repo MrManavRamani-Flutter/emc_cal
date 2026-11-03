@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:emb_cal/core/app_theme.dart';
-import 'package:emb_cal/data/sample_data.dart';
 import 'package:emb_cal/models/material_item.dart';
 import 'package:emb_cal/providers/production_provider.dart';
 

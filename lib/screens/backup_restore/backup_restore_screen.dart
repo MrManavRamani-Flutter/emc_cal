@@ -205,14 +205,6 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     final accCount = (data['accounts'] as List?)?.length ??
         (data['Accounts'] as List?)?.length ??
         0;
-    final empCount = (data['employees'] as List?)?.length ??
-        (data['Employees'] as List?)?.length ??
-        0;
-    final upadCount = (data['employee_upads'] as List?)?.length ??
-        (data['employeeUpads'] as List?)?.length ??
-        (data['upads'] as List?)?.length ??
-        (data['Upads'] as List?)?.length ??
-        0;
     final exportedAt = data['exported_at'] as String? ??
         (data['backup_timestamp'] as String? ?? 'Previous version backup');
 

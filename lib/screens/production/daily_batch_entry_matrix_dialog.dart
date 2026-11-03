@@ -9,15 +9,14 @@ import '../../widgets/app_svg_icon.dart';
 import '../../widgets/app_snack_bar.dart';
 
 class DailyBatchEntryMatrixDialog extends StatefulWidget {
-  const DailyBatchEntryMatrixDialog({Key? key}) : super(key: key);
+  const DailyBatchEntryMatrixDialog({super.key});
 
   @override
   State<DailyBatchEntryMatrixDialog> createState() => _DailyBatchEntryMatrixDialogState();
 }
 
 class _DailyBatchEntryMatrixDialogState extends State<DailyBatchEntryMatrixDialog> {
-  final _formKey = GlobalKey<FormState>();
-  DateTime _selectedDate = DateTime.now();
+  final DateTime _selectedDate = DateTime.now();
   String _selectedAccount = '250 Area';
   String _selectedShift = 'Day';
 
@@ -55,11 +54,21 @@ class _DailyBatchEntryMatrixDialogState extends State<DailyBatchEntryMatrixDialo
   void dispose() {
     _globalDesignController.dispose();
     _globalRateController.dispose();
-    for (var c in _designControllers.values) c.dispose();
-    for (var c in _stitchControllers.values) c.dispose();
-    for (var c in _rateControllers.values) c.dispose();
-    for (var c in _headsControllers.values) c.dispose();
-    for (var f in _stitchFocusNodes.values) f.dispose();
+    for (var c in _designControllers.values) {
+      c.dispose();
+    }
+    for (var c in _stitchControllers.values) {
+      c.dispose();
+    }
+    for (var c in _rateControllers.values) {
+      c.dispose();
+    }
+    for (var c in _headsControllers.values) {
+      c.dispose();
+    }
+    for (var f in _stitchFocusNodes.values) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -257,7 +266,7 @@ class _DailyBatchEntryMatrixDialogState extends State<DailyBatchEntryMatrixDialo
                         const Text('Khata / Account', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
                         DropdownButtonFormField<String>(
-                          value: provider.accounts.any((a) => a.name == _selectedAccount) ? _selectedAccount : null,
+                          initialValue: provider.accounts.any((a) => a.name == _selectedAccount) ? _selectedAccount : null,
                           decoration: InputDecoration(
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -282,7 +291,7 @@ class _DailyBatchEntryMatrixDialogState extends State<DailyBatchEntryMatrixDialo
                         const Text('Shift', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
                         DropdownButtonFormField<String>(
-                          value: _selectedShift,
+                          initialValue: _selectedShift,
                           decoration: InputDecoration(
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
