@@ -1,0 +1,75 @@
+name: Build Windows Single Installer EXE
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build OM MAVTAR Windows Setup EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Windows Desktop in Flutter
+        run: flutter config --enable-windows-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Verify Code Quality
+        run: flutter analyze
+
+      - name: Run Test Suite
+        run: flutter test
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Verify Release Binary Exists
+        run: |
+          if (Test-Path "build\windows\x64\runner\Release\emb_cal.exe") {
+            Write-Host "emb_cal.exe successfully compiled!" -ForegroundColor Green
+          } else {
+            Write-Error "emb_cal.exe was not found in release output."
+            exit 1
+          }
+        shell: powershell
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compile Windows Single-Click Installer EXE
+        run: |
+          New-Item -ItemType Directory -Force -Path "dist"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "windows\installer\OM_MAVTAR_Installer.iss"
+        shell: powershell
+
+      - name: Verify Output Setup EXE
+        run: |
+          if (Test-Path "dist\OM_MAVTAR_Calculator_v1.0_Setup.exe") {
+            $size = (Get-Item "dist\OM_MAVTAR_Calculator_v1.0_Setup.exe").Length / 1MB
+            Write-Host "Success! Installer size: $('{0:N2}' -f $size) MB" -ForegroundColor Green
+          } else {
+            Write-Error "Setup.exe was not generated."
+            exit 1
+          }
+        shell: powershell
+
+      - name: Upload Windows Setup EXE as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OM_MAVTAR_Calculator_v1.0_Windows_Setup
+          path: dist/OM_MAVTAR_Calculator_v1.0_Setup.exe
+          if-no-files-found: error
