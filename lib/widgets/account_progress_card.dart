@@ -172,13 +172,21 @@ class AccountProgressCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '$batchesCount Batches',
-                style: TextStyle(fontSize: 11, color: textMuted),
+              Flexible(
+                child: Text(
+                  '$batchesCount Batches',
+                  style: TextStyle(fontSize: 11, color: textMuted),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              Text(
-                '${progressPercent.toStringAsFixed(1)}% factory share',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  '${progressPercent.toStringAsFixed(1)}% factory share',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+                  textAlign: TextAlign.right,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),

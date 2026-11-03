@@ -41,6 +41,10 @@ class ProductionProvider extends ChangeNotifier {
   int _currentPage = 1;
   int _rowsPerPage = 10;
 
+  // Sorting
+  String _sortColumn = 'date';
+  bool _sortAscending = false;
+
   // Active Screen Navigation (0 to 10)
   int _activeNavIndex = 0;
 
@@ -91,6 +95,20 @@ class ProductionProvider extends ChangeNotifier {
 
   int get currentPage => _currentPage.clamp(1, max(1, totalPages));
   int get rowsPerPage => _rowsPerPage;
+
+  String get sortColumn => _sortColumn;
+  bool get sortAscending => _sortAscending;
+
+  void setSort(String column) {
+    if (_sortColumn == column) {
+      _sortAscending = !_sortAscending;
+    } else {
+      _sortColumn = column;
+      _sortAscending = true;
+    }
+    _currentPage = 1;
+    notifyListeners();
+  }
 
   // Material & Stock Getters
   List<MaterialItem> get materials => _materials;
@@ -508,7 +526,7 @@ class ProductionProvider extends ChangeNotifier {
   List<ProductionRecord> get filteredRecords {
     if (_records.isEmpty) return [];
 
-    return _records.where((record) {
+    final list = _records.where((record) {
       // Machine filter
       if (_selectedMachineFilter != 'All Machines' &&
           record.machineNo != _selectedMachineFilter) {
@@ -549,6 +567,47 @@ class ProductionProvider extends ChangeNotifier {
 
       return true;
     }).toList();
+
+    list.sort((a, b) {
+      int cmp = 0;
+      switch (_sortColumn) {
+        case 'date':
+          cmp = a.date.compareTo(b.date);
+          break;
+        case 'category':
+          cmp = a.accountName.toLowerCase().compareTo(b.accountName.toLowerCase());
+          break;
+        case 'designNo':
+          cmp = a.designNo.toLowerCase().compareTo(b.designNo.toLowerCase());
+          break;
+        case 'machineNo':
+          cmp = a.machineNo.toLowerCase().compareTo(b.machineNo.toLowerCase());
+          break;
+        case 'totalStitch':
+          cmp = a.totalStitch.compareTo(b.totalStitch);
+          break;
+        case 'finalStitch':
+          cmp = a.finalStitch.compareTo(b.finalStitch);
+          break;
+        case 'rate':
+          cmp = a.rate.compareTo(b.rate);
+          break;
+        case 'amount':
+          cmp = a.amount.compareTo(b.amount);
+          break;
+        case 'finalAmount':
+          cmp = a.finalAmount.compareTo(b.finalAmount);
+          break;
+        default:
+          cmp = a.date.compareTo(b.date);
+      }
+      if (cmp == 0) {
+        cmp = (a.id ?? 0).compareTo(b.id ?? 0);
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+
+    return list;
   }
 
   // Paginated records with strict bounds safety

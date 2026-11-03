@@ -163,21 +163,16 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
           // Top Category Overview Cards (Dynamically reflects Beads, 250 Area, 400 Area, etc.)
           _buildCategoryOverviewCards(context, provider, accent, isDark),
 
-          // Main Body: Records Table + Collapsible Calculation Details Side Panel
+          // Main Body: Records Table (Full Screen Width, Zero Horizontal Scroll)
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Table Container
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppTheme.cardBg(context),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.border(context)),
-                    ),
-                    child: Column(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBg(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border(context)),
+              ),
+              child: Column(
                       children: [
                         // Top Toolbar: + Add Record | Edit | Delete | Khata Filter | Search | Date
                         Row(
@@ -271,7 +266,7 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                                         children: [
                                           Icon(Icons.folder_open_rounded, size: 15, color: Colors.grey),
                                           SizedBox(width: 8),
-                                          Text('All Khatas / Categories'),
+                                          Text('All Categories'),
                                         ],
                                       ),
                                     ),
@@ -431,149 +426,14 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                                     ],
                                   ),
                                 )
-                              : LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final double cardWidth = constraints.maxWidth;
-                                    final double dynamicSpacing = ((cardWidth - 720) / 11).clamp(12.0, 48.0);
-
-                                    return SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: SingleChildScrollView(
-                                        child: ConstrainedBox(
-                                          constraints: BoxConstraints(minWidth: cardWidth),
-                                          child: DataTable(
-                                            showCheckboxColumn: false,
-                                            headingRowHeight: 46,
-                                            dataRowMinHeight: 44,
-                                            dataRowMaxHeight: 44,
-                                            horizontalMargin: 16,
-                                            columnSpacing: dynamicSpacing,
-                                            headingRowColor: WidgetStateProperty.all(AppTheme.tableHeaderBg(context)),
-                                            columns: [
-                                              DataColumn(
-                                                label: Checkbox(
-                                                  value: allSelected,
-                                                  activeColor: accent,
-                                                  onChanged: (val) => provider.toggleSelectAll(val ?? false),
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                                ),
-                                              ),
-                                              DataColumn(label: Text('No.', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Khata / Category', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Design No.', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Machine No.', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Total Stitch', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Final Stitch', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Rate ($currency)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Amount ($currency)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Heads', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Final Amount ($currency)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                              DataColumn(label: Text('Math', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)))),
-                                            ],
-                                            rows: List.generate(records.length, (idx) {
-                                              final r = records[idx];
-                                              final isCurrent = provider.entrySelectedRecord?.id == r.id;
-                                              final isChecked = r.id != null && provider.selectedIds.contains(r.id!);
-
-                                              return DataRow(
-                                                selected: isCurrent,
-                                                onSelectChanged: (_) {
-                                                  provider.selectEntryRecord(r);
-                                                },
-                                                color: WidgetStateProperty.resolveWith<Color?>((states) {
-                                                  if (isCurrent) return AppTheme.tableRowSelected(context);
-                                                  if (isChecked) return AppTheme.tableRowHover(context);
-                                                  return null;
-                                                }),
-                                                cells: [
-                                                  DataCell(
-                                                    Checkbox(
-                                                      value: isChecked,
-                                                      activeColor: accent,
-                                                      onChanged: (_) {
-                                                        if (r.id != null) provider.toggleSelectId(r.id!);
-                                                      },
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                                    ),
-                                                  ),
-                                                  DataCell(Text('${(provider.currentPage - 1) * provider.rowsPerPage + idx + 1}', style: TextStyle(color: AppTheme.textSecondary(context)))),
-                                                  DataCell(Text(r.formattedDate, style: TextStyle(color: AppTheme.textSecondary(context)))),
-                                                  DataCell(
-                                                    Builder(
-                                                      builder: (context) {
-                                                        final acc = provider.accounts.cast<AccountModel?>().firstWhere(
-                                                          (a) => a?.name.toLowerCase() == r.accountName.toLowerCase(),
-                                                          orElse: () => null,
-                                                        );
-                                                        final accColor = acc != null ? AppTheme.parseColor(acc.colorHex) : accent;
-                                                        return Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                          decoration: BoxDecoration(
-                                                            color: accColor.withValues(alpha: 0.12),
-                                                            borderRadius: BorderRadius.circular(6),
-                                                            border: Border.all(color: accColor.withValues(alpha: 0.3)),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              Container(
-                                                                width: 7,
-                                                                height: 7,
-                                                                decoration: BoxDecoration(
-                                                                  color: accColor,
-                                                                  shape: BoxShape.circle,
-                                                                ),
-                                                              ),
-                                                              const SizedBox(width: 5),
-                                                              Text(
-                                                                r.accountName,
-                                                                style: TextStyle(
-                                                                  color: accColor,
-                                                                  fontWeight: FontWeight.bold,
-                                                                  fontSize: 11.5,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  ),
-                                                  DataCell(
-                                                    Text(r.designNo, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
-                                                  ),
-                                                  DataCell(
-                                                    Text(r.machineNo, style: TextStyle(fontWeight: FontWeight.w600, color: accent)),
-                                                  ),
-                                                  DataCell(Text(NumberFormat('#,##,###').format(r.totalStitch), style: TextStyle(color: AppTheme.textSecondary(context)))),
-                                                  DataCell(Text(NumberFormat('#,##,###').format(r.finalStitch.toInt()), style: TextStyle(color: AppTheme.textSecondary(context)))),
-                                                  DataCell(Text(r.rate.toStringAsFixed(2), style: TextStyle(color: AppTheme.textSecondary(context)))),
-                                                  DataCell(Text(NumberFormat('#,##,###.00').format(r.amount), style: TextStyle(color: AppTheme.textSecondary(context)))),
-                                                  DataCell(Text('${r.heads}', style: TextStyle(color: AppTheme.textSecondary(context)))),
-                                                  DataCell(
-                                                    Text(
-                                                      NumberFormat('#,##,###.00').format(r.finalAmount),
-                                                      style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
-                                                    ),
-                                                  ),
-                                                  DataCell(
-                                                    IconButton(
-                                                      icon: Icon(Icons.calculate_outlined, size: 18, color: accent),
-                                                      tooltip: 'View Step-by-Step Math',
-                                                      onPressed: () {
-                                                        provider.selectEntryRecord(r);
-                                                      },
-                                                    ),
-                                                  ),
-                                                ],
-                                              );
-                                            }),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
+                              : _buildFullWidthRecordsTable(
+                                  context: context,
+                                  provider: provider,
+                                  records: records,
+                                  accent: accent,
+                                  isDark: isDark,
+                                  currency: currency,
+                                  allSelected: allSelected,
                                 ),
                         ),
 
@@ -651,20 +511,462 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                       ],
                     ),
                   ),
-                ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                // Right Side Calculation Details Inspector Panel (Visible when record selected)
-                if (provider.entrySelectedRecord != null)
-                  _buildCalculationInspectorSidePanel(
-                    provider.entrySelectedRecord!,
-                    provider,
-                    accent,
-                    isDark,
+  // Full-Width Zero-Horizontal-Scroll Data Table with Dynamic Header Click Sorting
+  Widget _buildFullWidthRecordsTable({
+    required BuildContext context,
+    required ProductionProvider provider,
+    required List<ProductionRecord> records,
+    required Color accent,
+    required bool isDark,
+    required String currency,
+    required bool allSelected,
+  }) {
+    return Column(
+      children: [
+        // Table Header Row
+        Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: AppTheme.tableHeaderBg(context),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            border: Border(bottom: BorderSide(color: AppTheme.border(context))),
+          ),
+          child: Row(
+            children: [
+              // Selection Checkbox
+              SizedBox(
+                width: 36,
+                child: Checkbox(
+                  value: allSelected,
+                  activeColor: accent,
+                  onChanged: (val) => provider.toggleSelectAll(val ?? false),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Date (Sortable)
+              _buildSortableHeaderCell(
+                context: context,
+                label: 'Date',
+                columnKey: 'date',
+                flex: 11,
+                provider: provider,
+                accent: accent,
+                isDark: isDark,
+              ),
+
+              // Category (Sortable)
+              _buildSortableHeaderCell(
+                context: context,
+                label: 'Category',
+                columnKey: 'category',
+                flex: 12,
+                provider: provider,
+                accent: accent,
+                isDark: isDark,
+              ),
+
+              // Design No. (Sortable)
+              _buildSortableHeaderCell(
+                context: context,
+                label: 'Design No.',
+                columnKey: 'designNo',
+                flex: 11,
+                provider: provider,
+                accent: accent,
+                isDark: isDark,
+              ),
+
+              // Machine No. (Sortable)
+              _buildSortableHeaderCell(
+                context: context,
+                label: 'Machine No.',
+                columnKey: 'machineNo',
+                flex: 10,
+                provider: provider,
+                accent: accent,
+                isDark: isDark,
+              ),
+
+              // Total Stitch (Sortable)
+              _buildSortableHeaderCell(
+                context: context,
+                label: 'Total Stitch',
+                columnKey: 'totalStitch',
+                flex: 12,
+                alignRight: true,
+                provider: provider,
+                accent: accent,
+                isDark: isDark,
+              ),
+
+              // Final Stitch (Sortable)
+              _buildSortableHeaderCell(
+                context: context,
+                label: 'Final Stitch',
+                columnKey: 'finalStitch',
+                flex: 10,
+                alignRight: true,
+                provider: provider,
+                accent: accent,
+                isDark: isDark,
+              ),
+
+              // Rate (₹) (Sortable)
+              _buildSortableHeaderCell(
+                context: context,
+                label: 'Rate ($currency)',
+                columnKey: 'rate',
+                flex: 9,
+                alignRight: true,
+                provider: provider,
+                accent: accent,
+                isDark: isDark,
+              ),
+
+              // Amount (₹) (Sortable)
+              _buildSortableHeaderCell(
+                context: context,
+                label: 'Amount ($currency)',
+                columnKey: 'amount',
+                flex: 12,
+                alignRight: true,
+                provider: provider,
+                accent: accent,
+                isDark: isDark,
+              ),
+
+              // Final Amount (₹) (Sortable)
+              _buildSortableHeaderCell(
+                context: context,
+                label: 'Final Amount ($currency)',
+                columnKey: 'finalAmount',
+                flex: 14,
+                alignRight: true,
+                provider: provider,
+                accent: accent,
+                isDark: isDark,
+              ),
+
+              // Math icon column
+              SizedBox(
+                width: 44,
+                child: Center(
+                  child: Text(
+                    'Math',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: AppTheme.textPrimary(context),
+                    ),
                   ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Table Rows (Smooth Scrollable ListView)
+        Expanded(
+          child: ListView.separated(
+            itemCount: records.length,
+            separatorBuilder: (context, index) => Divider(
+              height: 1,
+              thickness: 0.8,
+              color: AppTheme.border(context).withValues(alpha: 0.5),
+            ),
+            itemBuilder: (context, idx) {
+              final r = records[idx];
+              final isCurrent = provider.entrySelectedRecord?.id == r.id;
+              final isChecked = r.id != null && provider.selectedIds.contains(r.id!);
+
+              final acc = provider.accounts.cast<AccountModel?>().firstWhere(
+                (a) => a?.name.toLowerCase() == r.accountName.toLowerCase(),
+                orElse: () => null,
+              );
+              final accColor = acc != null ? AppTheme.parseColor(acc.colorHex) : accent;
+
+              Color? rowBg;
+              if (isCurrent) {
+                rowBg = AppTheme.tableRowSelected(context);
+              } else if (isChecked) {
+                rowBg = AppTheme.tableRowHover(context);
+              }
+
+              return Material(
+                color: rowBg ?? Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    provider.selectEntryRecord(r);
+                  },
+                  onDoubleTap: () {
+                    _showCalculationDetailsDialog(context, r, provider, accent, isDark);
+                  },
+                  hoverColor: AppTheme.tableRowHover(context),
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      children: [
+                        // Checkbox
+                        SizedBox(
+                          width: 36,
+                          child: Checkbox(
+                            value: isChecked,
+                            activeColor: accent,
+                            onChanged: (_) {
+                              if (r.id != null) provider.toggleSelectId(r.id!);
+                            },
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Date
+                        Expanded(
+                          flex: 11,
+                          child: Text(
+                            r.formattedDate,
+                            style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Category Pill
+                        Expanded(
+                          flex: 12,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: accColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: accColor.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: BoxDecoration(color: accColor, shape: BoxShape.circle),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      r.accountName,
+                                      style: TextStyle(
+                                        color: accColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11.5,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Design No.
+                        Expanded(
+                          flex: 11,
+                          child: Text(
+                            r.designNo,
+                            style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context), fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Machine No.
+                        Expanded(
+                          flex: 10,
+                          child: Text(
+                            r.machineNo,
+                            style: TextStyle(fontWeight: FontWeight.w600, color: accent, fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Total Stitch
+                        Expanded(
+                          flex: 12,
+                          child: Text(
+                            NumberFormat('#,##,###').format(r.totalStitch),
+                            textAlign: TextAlign.right,
+                            style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Final Stitch
+                        Expanded(
+                          flex: 10,
+                          child: Text(
+                            NumberFormat('#,##,###').format(r.finalStitch.toInt()),
+                            textAlign: TextAlign.right,
+                            style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Rate (₹)
+                        Expanded(
+                          flex: 9,
+                          child: Text(
+                            r.rate.toStringAsFixed(2),
+                            textAlign: TextAlign.right,
+                            style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Amount (₹)
+                        Expanded(
+                          flex: 12,
+                          child: Text(
+                            NumberFormat('#,##,###.00').format(r.amount),
+                            textAlign: TextAlign.right,
+                            style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Final Amount (₹)
+                        Expanded(
+                          flex: 14,
+                          child: Text(
+                            NumberFormat('#,##,###.00').format(r.finalAmount),
+                            textAlign: TextAlign.right,
+                            style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context), fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Math Action
+                        SizedBox(
+                          width: 44,
+                          child: IconButton(
+                            icon: Icon(Icons.calculate_outlined, size: 18, color: accent),
+                            tooltip: 'View Step-by-Step Math',
+                            onPressed: () {
+                              _showCalculationDetailsDialog(context, r, provider, accent, isDark);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSortableHeaderCell({
+    required BuildContext context,
+    required String label,
+    required String columnKey,
+    required int flex,
+    required ProductionProvider provider,
+    required Color accent,
+    required bool isDark,
+    bool alignRight = false,
+  }) {
+    final isCurrent = provider.sortColumn == columnKey;
+    final isAsc = provider.sortAscending;
+
+    return Expanded(
+      flex: flex,
+      child: Tooltip(
+        message: 'Sort by $label',
+        child: InkWell(
+          onTap: () => provider.setSort(columnKey),
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Row(
+              mainAxisAlignment: alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: isCurrent ? accent : AppTheme.textPrimary(context),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  isCurrent
+                      ? (isAsc ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded)
+                      : Icons.unfold_more_rounded,
+                  size: 14,
+                  color: isCurrent ? accent : AppTheme.textMuted(context).withValues(alpha: 0.6),
+                ),
               ],
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  void _showCalculationDetailsDialog(
+    BuildContext context,
+    ProductionRecord r,
+    ProductionProvider provider,
+    Color accent,
+    bool isDark,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Container(
+          width: 460,
+          constraints: const BoxConstraints(maxHeight: 700),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.border(context)),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: _buildCalculationInspectorSidePanel(
+              r,
+              provider,
+              accent,
+              isDark,
+              isDialog: true,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -737,13 +1039,14 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
     );
   }
 
-  // Right-Side Calculation Details Inspector Panel
+  // Right-Side Calculation Details Inspector Panel / Dialog
   Widget _buildCalculationInspectorSidePanel(
     ProductionRecord r,
     ProductionProvider provider,
     Color accent,
-    bool isDark,
-  ) {
+    bool isDark, {
+    bool isDialog = false,
+  }) {
     final currency = provider.settings.currencySymbol;
     final acc = provider.accounts.cast<AccountModel?>().firstWhere(
       (a) => a?.name.toLowerCase() == r.accountName.toLowerCase(),
@@ -752,8 +1055,8 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
     final accColor = acc != null ? AppTheme.parseColor(acc.colorHex) : accent;
 
     return Container(
-      width: 330,
-      margin: const EdgeInsets.only(left: 16),
+      width: isDialog ? double.infinity : 330,
+      margin: isDialog ? EdgeInsets.zero : const EdgeInsets.only(left: 16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
@@ -815,7 +1118,13 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                   tooltip: 'Close Details Panel',
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  onPressed: () => provider.clearEntrySelection(),
+                  onPressed: () {
+                    if (isDialog) {
+                      Navigator.of(context).pop();
+                    } else {
+                      provider.clearEntrySelection();
+                    }
+                  },
                 ),
               ],
             ),
@@ -956,6 +1265,7 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
+                          if (isDialog) Navigator.of(context).pop();
                           showDialog(
                             context: context,
                             builder: (_) => AddEditRecordDialog(existingRecord: r),
@@ -972,6 +1282,7 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
+                          if (isDialog) Navigator.of(context).pop();
                           provider.selectRecord(r);
                           provider.setActiveNavIndex(9); // Full calculation view
                         },

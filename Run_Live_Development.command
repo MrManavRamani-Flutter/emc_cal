@@ -7,3 +7,4 @@ export PATH="/Users/manavramani/flutter/bin:/opt/homebrew/bin:/usr/local/bin:$PA
 cd "$DIR" || exit 1
 
 python3 "$DIR/scripts/live_runner.py"
+
