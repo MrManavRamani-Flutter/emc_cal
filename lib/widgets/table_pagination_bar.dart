@@ -22,7 +22,7 @@ class TablePaginationBar extends StatelessWidget {
     required this.rowsPerPage,
     required this.onPageChanged,
     this.onRowsPerPageChanged,
-    this.rowsPerPageOptions = const [8, 10, 25, 50, 100],
+    this.rowsPerPageOptions = const [10, 25, 50, -1],
     this.isDark = false,
     this.accentColor,
   });
@@ -33,8 +33,16 @@ class TablePaginationBar extends StatelessWidget {
     final textMuted = isDark ? const Color(0xFF94A3B8) : AppTheme.slateMedium;
     final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
-    final startItem = totalItems == 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
-    final endItem = (currentPage * rowsPerPage).clamp(0, totalItems);
+    final isShowAll = rowsPerPage <= 0;
+    final startItem = totalItems == 0 ? 0 : (isShowAll ? 1 : (currentPage - 1) * rowsPerPage + 1);
+    final endItem = isShowAll ? totalItems : (currentPage * rowsPerPage).clamp(0, totalItems);
+
+    final effectiveOptions = rowsPerPageOptions.contains(-1)
+        ? rowsPerPageOptions
+        : [...rowsPerPageOptions, -1];
+
+    final effectiveTotalPages = isShowAll ? 1 : (totalPages == 0 ? 1 : totalPages);
+    final effectiveCurrentPage = isShowAll ? 1 : currentPage;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -64,16 +72,17 @@ class TablePaginationBar extends StatelessWidget {
                     border: Border.all(color: borderColor),
                   ),
                   child: DropdownButton<int>(
-                    value: rowsPerPageOptions.contains(rowsPerPage) ? rowsPerPage : rowsPerPageOptions.first,
+                    value: effectiveOptions.contains(rowsPerPage) ? rowsPerPage : effectiveOptions.first,
                     isDense: true,
                     underline: const SizedBox(),
-                    items: rowsPerPageOptions.map((n) {
+                    items: effectiveOptions.map((n) {
                       return DropdownMenuItem<int>(
                         value: n,
                         child: Text(
-                          '$n',
+                          n <= 0 ? 'Show All' : '$n',
                           style: TextStyle(
                             fontSize: 12,
+                            fontWeight: n <= 0 ? FontWeight.bold : FontWeight.normal,
                             color: isDark ? Colors.white : AppTheme.darkNavy,
                           ),
                         ),
@@ -95,7 +104,7 @@ class TablePaginationBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: Text(
-                  'Page $currentPage of ${totalPages == 0 ? 1 : totalPages}',
+                  'Page $effectiveCurrentPage of $effectiveTotalPages',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: effectiveAccent),
                 ),
               ),
@@ -104,7 +113,7 @@ class TablePaginationBar extends StatelessWidget {
               // First Page Button
               IconButton(
                 icon: const Icon(Icons.first_page_rounded, size: 18),
-                onPressed: currentPage > 1 ? () => onPageChanged(1) : null,
+                onPressed: (!isShowAll && effectiveCurrentPage > 1) ? () => onPageChanged(1) : null,
                 tooltip: 'First Page',
                 splashRadius: 18,
               ),
@@ -112,7 +121,7 @@ class TablePaginationBar extends StatelessWidget {
               // Prev Button
               IconButton(
                 icon: const Icon(Icons.chevron_left_rounded, size: 20),
-                onPressed: currentPage > 1 ? () => onPageChanged(currentPage - 1) : null,
+                onPressed: (!isShowAll && effectiveCurrentPage > 1) ? () => onPageChanged(effectiveCurrentPage - 1) : null,
                 tooltip: 'Previous Page',
                 splashRadius: 18,
               ),
@@ -120,7 +129,7 @@ class TablePaginationBar extends StatelessWidget {
               // Next Button
               IconButton(
                 icon: const Icon(Icons.chevron_right_rounded, size: 20),
-                onPressed: currentPage < totalPages ? () => onPageChanged(currentPage + 1) : null,
+                onPressed: (!isShowAll && effectiveCurrentPage < effectiveTotalPages) ? () => onPageChanged(effectiveCurrentPage + 1) : null,
                 tooltip: 'Next Page',
                 splashRadius: 18,
               ),
@@ -128,7 +137,7 @@ class TablePaginationBar extends StatelessWidget {
               // Last Page Button
               IconButton(
                 icon: const Icon(Icons.last_page_rounded, size: 18),
-                onPressed: currentPage < totalPages ? () => onPageChanged(totalPages) : null,
+                onPressed: (!isShowAll && effectiveCurrentPage < effectiveTotalPages) ? () => onPageChanged(effectiveTotalPages) : null,
                 tooltip: 'Last Page',
                 splashRadius: 18,
               ),

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 class ProductionRecord {
   final int? id;
   final DateTime date;
+  final DateTime? createdAt;
   final String designNo;
   final String machineNo;
   final int totalStitch;
@@ -18,6 +19,7 @@ class ProductionRecord {
   ProductionRecord({
     this.id,
     required this.date,
+    this.createdAt,
     required this.designNo,
     required this.machineNo,
     required this.totalStitch,
@@ -34,6 +36,7 @@ class ProductionRecord {
   ProductionRecord copyWith({
     int? id,
     DateTime? date,
+    DateTime? createdAt,
     String? designNo,
     String? machineNo,
     int? totalStitch,
@@ -49,6 +52,7 @@ class ProductionRecord {
     return ProductionRecord(
       id: id ?? this.id,
       date: date ?? this.date,
+      createdAt: createdAt ?? this.createdAt,
       designNo: designNo ?? this.designNo,
       machineNo: machineNo ?? this.machineNo,
       totalStitch: totalStitch ?? this.totalStitch,
@@ -65,11 +69,13 @@ class ProductionRecord {
 
   String get formattedDate => DateFormat('dd-MM-yyyy').format(date);
   String get isoDate => DateFormat('yyyy-MM-dd').format(date);
+  String get formattedCreatedAt => createdAt != null ? DateFormat('dd-MM-yyyy HH:mm:ss').format(createdAt!) : '';
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'date': isoDate,
+      'created_at': (createdAt ?? DateTime.now()).toIso8601String(),
       'design_no': designNo,
       'machine_no': machineNo,
       'total_stitch': totalStitch,
@@ -103,9 +109,18 @@ class ProductionRecord {
       parsedDate = DateTime.now();
     }
 
+    DateTime? parsedCreatedAt;
+    try {
+      final createdAtStr = map['created_at'] as String?;
+      if (createdAtStr != null && createdAtStr.isNotEmpty) {
+        parsedCreatedAt = DateTime.tryParse(createdAtStr);
+      }
+    } catch (_) {}
+
     return ProductionRecord(
       id: map['id'] as int?,
       date: parsedDate,
+      createdAt: parsedCreatedAt,
       designNo: map['design_no'] as String? ?? '',
       machineNo: map['machine_no'] as String? ?? '',
       totalStitch: (map['total_stitch'] as num?)?.toInt() ?? 0,

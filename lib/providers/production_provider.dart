@@ -615,6 +615,10 @@ class ProductionProvider extends ChangeNotifier {
     final list = filteredRecords;
     if (list.isEmpty) return [];
 
+    if (_rowsPerPage <= 0) {
+      return list; // "Show All" selected
+    }
+
     final validPage = _currentPage.clamp(1, max(1, totalPages)).toInt();
     final startIndex = (validPage - 1) * _rowsPerPage;
     if (startIndex >= list.length) {
@@ -627,6 +631,7 @@ class ProductionProvider extends ChangeNotifier {
   int get totalPages {
     final count = filteredRecords.length;
     if (count == 0) return 1;
+    if (_rowsPerPage <= 0) return 1; // "Show All" has 1 page
     return (count / _rowsPerPage).ceil();
   }
 
@@ -946,6 +951,7 @@ class ProductionProvider extends ChangeNotifier {
   // CRUD Operations - Records
   Future<void> addRecord({
     required DateTime date,
+    DateTime? createdAt,
     required String designNo,
     required String machineNo,
     required int totalStitch,
@@ -964,6 +970,7 @@ class ProductionProvider extends ChangeNotifier {
 
     final record = ProductionRecord(
       date: date,
+      createdAt: createdAt ?? DateTime.now(),
       designNo: designNo.trim().toUpperCase(),
       machineNo: machineNo.trim(),
       totalStitch: totalStitch,
@@ -1000,6 +1007,7 @@ class ProductionProvider extends ChangeNotifier {
   Future<void> updateRecord({
     required int id,
     required DateTime date,
+    DateTime? createdAt,
     required String designNo,
     required String machineNo,
     required int totalStitch,
@@ -1009,6 +1017,7 @@ class ProductionProvider extends ChangeNotifier {
     String accountName = '250 Area',
     String shift = 'Day',
   }) async {
+    final existing = _records.where((r) => r.id == id).firstOrNull;
     final calc = CalculationEngine.calculate(
       totalStitch: totalStitch,
       rate: rate,
@@ -1019,6 +1028,7 @@ class ProductionProvider extends ChangeNotifier {
     final record = ProductionRecord(
       id: id,
       date: date,
+      createdAt: createdAt ?? existing?.createdAt ?? DateTime.now(),
       designNo: designNo.trim().toUpperCase(),
       machineNo: machineNo.trim(),
       totalStitch: totalStitch,

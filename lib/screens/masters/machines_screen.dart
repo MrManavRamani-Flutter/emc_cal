@@ -17,6 +17,8 @@ class MachinesScreen extends StatefulWidget {
 class _MachinesScreenState extends State<MachinesScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchFilter = '';
+  int _sortColumnIndex = 1;
+  bool _sortAscending = true;
 
   @override
   void dispose() {
@@ -180,6 +182,32 @@ class _MachinesScreenState extends State<MachinesScreen> {
           m.name.toLowerCase().contains(_searchFilter);
     }).toList();
 
+    machines.sort((a, b) {
+      int cmp = 0;
+      switch (_sortColumnIndex) {
+        case 0:
+          final idxA = provider.machines.indexOf(a);
+          final idxB = provider.machines.indexOf(b);
+          cmp = idxA.compareTo(idxB);
+          break;
+        case 1:
+          cmp = a.machineNo.toLowerCase().compareTo(b.machineNo.toLowerCase());
+          break;
+        case 2:
+          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          break;
+        case 3:
+          cmp = a.headCapacity.compareTo(b.headCapacity);
+          break;
+        case 4:
+          cmp = (a.isActive ? 1 : 0).compareTo(b.isActive ? 1 : 0);
+          break;
+        default:
+          cmp = a.machineNo.compareTo(b.machineNo);
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Container(
@@ -266,18 +294,51 @@ class _MachinesScreenState extends State<MachinesScreen> {
                             child: DataTable(
                               columnSpacing: dynamicSpacing,
                               horizontalMargin: 16,
-                          headingRowHeight: 46,
-                          dataRowMinHeight: 48,
-                          dataRowMaxHeight: 48,
-                          headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
-                          columns: [
-                            DataColumn(label: Text('No.', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy))),
-                            DataColumn(label: Text('Machine No.', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy))),
-                            DataColumn(label: Text('Machine Name', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy))),
-                            DataColumn(label: Text('Total Heads', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy))),
-                            DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy))),
-                            DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy))),
-                          ],
+                              sortColumnIndex: _sortColumnIndex,
+                              sortAscending: _sortAscending,
+                              headingRowHeight: 46,
+                              dataRowMinHeight: 48,
+                              dataRowMaxHeight: 48,
+                              headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                              columns: [
+                                DataColumn(
+                                  label: Text('No.', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy)),
+                                  onSort: (idx, asc) => setState(() {
+                                    _sortColumnIndex = idx;
+                                    _sortAscending = asc;
+                                  }),
+                                ),
+                                DataColumn(
+                                  label: Text('Machine No.', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy)),
+                                  onSort: (idx, asc) => setState(() {
+                                    _sortColumnIndex = idx;
+                                    _sortAscending = asc;
+                                  }),
+                                ),
+                                DataColumn(
+                                  label: Text('Machine Name', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy)),
+                                  onSort: (idx, asc) => setState(() {
+                                    _sortColumnIndex = idx;
+                                    _sortAscending = asc;
+                                  }),
+                                ),
+                                DataColumn(
+                                  numeric: true,
+                                  label: Text('Total Heads', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy)),
+                                  onSort: (idx, asc) => setState(() {
+                                    _sortColumnIndex = idx;
+                                    _sortAscending = asc;
+                                  }),
+                                ),
+                                DataColumn(
+                                  label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy)),
+                                  onSort: (idx, asc) => setState(() {
+                                    _sortColumnIndex = idx;
+                                    _sortAscending = asc;
+                                  }),
+                                ),
+                                DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF8FAFC) : AppTheme.darkNavy))),
+                              ],
                           rows: List.generate(machines.length, (idx) {
                             final m = machines[idx];
                             return DataRow(

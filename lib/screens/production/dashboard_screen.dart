@@ -29,7 +29,9 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   String _selectedDashboardSection = 'All'; // 'All' or specific account/section name
   String _activeViewMode = 'all'; // 'all', 'overview', 'tables', 'charts'
   int _searchPage = 1;
-  final int _searchRowsPerPage = 10;
+  int _searchRowsPerPage = 10;
+  int _searchSortColumnIndex = 0;
+  bool _searchSortAscending = false;
 
   TrendPeriod _selectedTrendPeriod = TrendPeriod.day;
   String _chartType = 'market'; // 'market' or 'bar'
@@ -856,16 +858,60 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       return true;
     }).toList();
 
+    // Sort search results dynamically
+    searchResults.sort((a, b) {
+      int cmp = 0;
+      switch (_searchSortColumnIndex) {
+        case 0:
+          cmp = a.date.compareTo(b.date);
+          break;
+        case 1:
+          cmp = a.accountName.toLowerCase().compareTo(b.accountName.toLowerCase());
+          break;
+        case 2:
+          cmp = a.shift.toLowerCase().compareTo(b.shift.toLowerCase());
+          break;
+        case 3:
+          cmp = a.designNo.toLowerCase().compareTo(b.designNo.toLowerCase());
+          break;
+        case 4:
+          cmp = a.machineNo.toLowerCase().compareTo(b.machineNo.toLowerCase());
+          break;
+        case 5:
+          cmp = a.totalStitch.compareTo(b.totalStitch);
+          break;
+        case 6:
+          cmp = a.finalStitch.compareTo(b.finalStitch);
+          break;
+        case 7:
+          cmp = a.rate.compareTo(b.rate);
+          break;
+        case 8:
+          cmp = a.amount.compareTo(b.amount);
+          break;
+        case 9:
+          cmp = a.heads.compareTo(b.heads);
+          break;
+        case 10:
+          cmp = a.finalAmount.compareTo(b.finalAmount);
+          break;
+        default:
+          cmp = a.date.compareTo(b.date);
+      }
+      return _searchSortAscending ? cmp : -cmp;
+    });
+
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? Colors.white : AppTheme.darkNavy;
     final textMuted = isDark ? const Color(0xFF94A3B8) : AppTheme.slateMedium;
 
     final totalFound = searchResults.length;
-    final totalPages = max(1, (totalFound / _searchRowsPerPage).ceil());
-    final validPage = _searchPage.clamp(1, totalPages);
-    final startIndex = (validPage - 1) * _searchRowsPerPage;
-    final pagedResults = searchResults.skip(startIndex).take(_searchRowsPerPage).toList();
+    final isShowAll = _searchRowsPerPage <= 0;
+    final totalPages = isShowAll ? 1 : max(1, (totalFound / _searchRowsPerPage).ceil());
+    final validPage = isShowAll ? 1 : _searchPage.clamp(1, totalPages);
+    final startIndex = isShowAll ? 0 : (validPage - 1) * _searchRowsPerPage;
+    final pagedResults = isShowAll ? searchResults : searchResults.skip(startIndex).take(_searchRowsPerPage).toList();
 
     final allPagedSelected = pagedResults.isNotEmpty &&
         pagedResults.every((r) => r.id != null && provider.selectedIds.contains(r.id!));
@@ -1048,6 +1094,8 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                     constraints: BoxConstraints(minWidth: constraints.maxWidth),
                     child: DataTable(
                       showCheckboxColumn: false,
+                      sortColumnIndex: _searchSortColumnIndex,
+                      sortAscending: _searchSortAscending,
                       headingRowColor: WidgetStateProperty.all(
                         isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                       ),
@@ -1061,6 +1109,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                       horizontalMargin: 16,
                       columns: [
                         DataColumn(
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
                           label: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -1090,16 +1142,80 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                             ],
                           ),
                         ),
-                        const DataColumn(label: Text('Khata / Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        const DataColumn(label: Text('Shift', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        const DataColumn(label: Text('Design No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        const DataColumn(label: Text('Machine', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        const DataColumn(numeric: true, label: Text('Total Stitch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        const DataColumn(numeric: true, label: Text('Final Stitch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        const DataColumn(label: Text('Rate (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        const DataColumn(numeric: true, label: Text('Amount (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        const DataColumn(label: Text('Heads', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        const DataColumn(numeric: true, label: Text('Final Amount (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                        DataColumn(
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Khata / Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Shift', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Design No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Machine', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          numeric: true,
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Total Stitch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          numeric: true,
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Final Stitch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Rate (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          numeric: true,
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Amount (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Heads', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          numeric: true,
+                          onSort: (idx, asc) => setState(() {
+                            _searchSortColumnIndex = idx;
+                            _searchSortAscending = asc;
+                          }),
+                          label: const Text('Final Amount (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
                         const DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                       ],
                       rows: pagedResults.map((r) {
@@ -1284,6 +1400,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                 isDark: isDark,
                 accentColor: accent,
                 onPageChanged: (newPage) => setState(() => _searchPage = newPage),
+                onRowsPerPageChanged: (v) => setState(() {
+                  _searchRowsPerPage = v;
+                  _searchPage = 1;
+                }),
               ),
             ),
           ],

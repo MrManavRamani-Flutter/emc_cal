@@ -448,7 +448,9 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                               Text(
                                 totalFiltered == 0
                                     ? 'Showing 0 to 0 of 0 records'
-                                    : 'Showing ${(provider.currentPage - 1) * provider.rowsPerPage + 1} to ${((provider.currentPage - 1) * provider.rowsPerPage + records.length).clamp(1, totalFiltered)} of $totalFiltered records',
+                                    : (provider.rowsPerPage <= 0
+                                        ? 'Showing 1 to $totalFiltered of $totalFiltered records'
+                                        : 'Showing ${(provider.currentPage - 1) * provider.rowsPerPage + 1} to ${((provider.currentPage - 1) * provider.rowsPerPage + records.length).clamp(1, totalFiltered)} of $totalFiltered records'),
                                 style: const TextStyle(fontSize: 12, color: AppTheme.slateMedium),
                               ),
                               Row(
@@ -456,10 +458,20 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                                   const Text('Rows per page:', style: TextStyle(fontSize: 12, color: AppTheme.slateMedium)),
                                   const SizedBox(width: 8),
                                   DropdownButton<int>(
-                                    value: provider.rowsPerPage,
+                                    value: [10, 20, 50, -1].contains(provider.rowsPerPage) ? provider.rowsPerPage : 10,
                                     isDense: true,
                                     underline: const SizedBox(),
-                                    items: [10, 20, 50].map((n) => DropdownMenuItem(value: n, child: Text('$n'))).toList(),
+                                    items: [10, 20, 50, -1].map((n) {
+                                      return DropdownMenuItem(
+                                        value: n,
+                                        child: Text(
+                                          n == -1 ? 'Show All' : '$n',
+                                          style: TextStyle(
+                                            fontWeight: n == -1 ? FontWeight.bold : FontWeight.normal,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
                                     onChanged: (val) {
                                       if (val != null) provider.setRowsPerPage(val);
                                     },
@@ -468,14 +480,14 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                                   // Prev
                                   IconButton(
                                     icon: const Icon(Icons.chevron_left_rounded, size: 20),
-                                    onPressed: provider.currentPage > 1
+                                    onPressed: (provider.rowsPerPage > 0 && provider.currentPage > 1)
                                         ? () => provider.setPage(provider.currentPage - 1)
                                         : null,
                                   ),
                                   // Page numbers
-                                  ...List.generate(provider.totalPages, (i) {
+                                  ...List.generate(provider.rowsPerPage <= 0 ? 1 : provider.totalPages, (i) {
                                     final p = i + 1;
-                                    final isCur = p == provider.currentPage;
+                                    final isCur = p == (provider.rowsPerPage <= 0 ? 1 : provider.currentPage);
                                     return InkWell(
                                       onTap: () => provider.setPage(p),
                                       child: Container(
@@ -499,7 +511,7 @@ class _ProductionEntryScreenState extends State<ProductionEntryScreen> {
                                   // Next
                                   IconButton(
                                     icon: const Icon(Icons.chevron_right_rounded, size: 20),
-                                    onPressed: provider.currentPage < provider.totalPages
+                                    onPressed: (provider.rowsPerPage > 0 && provider.currentPage < provider.totalPages)
                                         ? () => provider.setPage(provider.currentPage + 1)
                                         : null,
                                   ),

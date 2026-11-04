@@ -18,6 +18,8 @@ class AccountsScreen extends StatefulWidget {
 class _AccountsScreenState extends State<AccountsScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchFilter = '';
+  int _sortColumnIndex = 0;
+  bool _sortAscending = true;
 
   final List<String> _presetColors = [
     '#2563EB', // Blue (250 Area)
@@ -310,6 +312,42 @@ class _AccountsScreenState extends State<AccountsScreen> {
           a.notes.toLowerCase().contains(q);
     }).toList();
 
+    accounts.sort((a, b) {
+      int cmp = 0;
+      switch (_sortColumnIndex) {
+        case 0:
+          cmp = a.displayOrder.compareTo(b.displayOrder);
+          break;
+        case 1:
+          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          break;
+        case 2:
+          cmp = a.area.toLowerCase().compareTo(b.area.toLowerCase());
+          break;
+        case 4:
+          final sumA = provider.getAccountSummary(a.name).totalEntries;
+          final sumB = provider.getAccountSummary(b.name).totalEntries;
+          cmp = sumA.compareTo(sumB);
+          break;
+        case 5:
+          final sumA = provider.getAccountSummary(a.name).totalStitch;
+          final sumB = provider.getAccountSummary(b.name).totalStitch;
+          cmp = sumA.compareTo(sumB);
+          break;
+        case 6:
+          final sumA = provider.getAccountSummary(a.name).finalAmount;
+          final sumB = provider.getAccountSummary(b.name).finalAmount;
+          cmp = sumA.compareTo(sumB);
+          break;
+        case 7:
+          cmp = (a.isActive ? 1 : 0).compareTo(b.isActive ? 1 : 0);
+          break;
+        default:
+          cmp = a.displayOrder.compareTo(b.displayOrder);
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+
     final totalBatches = provider.allRecords.length;
     final totalRevenue = provider.allRecords.fold<double>(0.0, (s, r) => s + r.finalAmount);
 
@@ -473,18 +511,65 @@ class _AccountsScreenState extends State<AccountsScreen> {
                         child: DataTable(
                           columnSpacing: dynamicSpacing,
                           horizontalMargin: 12,
+                          sortColumnIndex: _sortColumnIndex,
+                          sortAscending: _sortAscending,
                           headingRowColor: WidgetStateProperty.all(
                             isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                           ),
                           columns: [
-                            DataColumn(label: Text('Dashboard Order', style: _headerStyle(isDark))),
-                            DataColumn(label: Text('Account Name', style: _headerStyle(isDark))),
-                            DataColumn(label: Text('Area / Code', style: _headerStyle(isDark))),
+                            DataColumn(
+                              label: Text('Dashboard Order', style: _headerStyle(isDark)),
+                              onSort: (idx, asc) => setState(() {
+                                _sortColumnIndex = idx;
+                                _sortAscending = asc;
+                              }),
+                            ),
+                            DataColumn(
+                              label: Text('Account Name', style: _headerStyle(isDark)),
+                              onSort: (idx, asc) => setState(() {
+                                _sortColumnIndex = idx;
+                                _sortAscending = asc;
+                              }),
+                            ),
+                            DataColumn(
+                              label: Text('Area / Code', style: _headerStyle(isDark)),
+                              onSort: (idx, asc) => setState(() {
+                                _sortColumnIndex = idx;
+                                _sortAscending = asc;
+                              }),
+                            ),
                             DataColumn(label: Text('Color Theme', style: _headerStyle(isDark))),
-                            DataColumn(label: Text('Batches', style: _headerStyle(isDark)), numeric: true),
-                            DataColumn(label: Text('Total Stitch', style: _headerStyle(isDark)), numeric: true),
-                            DataColumn(label: Text('Total Revenue ($currency)', style: _headerStyle(isDark)), numeric: true),
-                            DataColumn(label: Text('Status', style: _headerStyle(isDark))),
+                            DataColumn(
+                              numeric: true,
+                              label: Text('Batches', style: _headerStyle(isDark)),
+                              onSort: (idx, asc) => setState(() {
+                                _sortColumnIndex = idx;
+                                _sortAscending = asc;
+                              }),
+                            ),
+                            DataColumn(
+                              numeric: true,
+                              label: Text('Total Stitch', style: _headerStyle(isDark)),
+                              onSort: (idx, asc) => setState(() {
+                                _sortColumnIndex = idx;
+                                _sortAscending = asc;
+                              }),
+                            ),
+                            DataColumn(
+                              numeric: true,
+                              label: Text('Total Revenue ($currency)', style: _headerStyle(isDark)),
+                              onSort: (idx, asc) => setState(() {
+                                _sortColumnIndex = idx;
+                                _sortAscending = asc;
+                              }),
+                            ),
+                            DataColumn(
+                              label: Text('Status', style: _headerStyle(isDark)),
+                              onSort: (idx, asc) => setState(() {
+                                _sortColumnIndex = idx;
+                                _sortAscending = asc;
+                              }),
+                            ),
                             DataColumn(label: Text('Actions', style: _headerStyle(isDark))),
                           ],
                           rows: accounts.map((acc) {

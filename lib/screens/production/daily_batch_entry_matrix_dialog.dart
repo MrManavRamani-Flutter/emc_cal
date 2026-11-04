@@ -16,9 +16,21 @@ class DailyBatchEntryMatrixDialog extends StatefulWidget {
 }
 
 class _DailyBatchEntryMatrixDialogState extends State<DailyBatchEntryMatrixDialog> {
-  final DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = DateTime.now();
   String _selectedAccount = '250 Area';
   String _selectedShift = 'Day';
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2015),
+      lastDate: DateTime(2050),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
 
   final TextEditingController _globalDesignController = TextEditingController();
   final TextEditingController _globalRateController = TextEditingController(text: '0.5');
@@ -125,13 +137,12 @@ class _DailyBatchEntryMatrixDialogState extends State<DailyBatchEntryMatrixDialo
     }
 
     final List<ProductionRecord> recordsToSave = [];
-    final combinedDate = DateTime(
+    final entryDate = DateTime(
       _selectedDate.year,
       _selectedDate.month,
       _selectedDate.day,
-      DateTime.now().hour,
-      DateTime.now().minute,
     );
+    final nowCreated = DateTime.now();
 
     for (final machine in machines) {
       final machineNo = machine.machineNo;
@@ -162,7 +173,8 @@ class _DailyBatchEntryMatrixDialogState extends State<DailyBatchEntryMatrixDialo
 
       recordsToSave.add(
         ProductionRecord(
-          date: combinedDate,
+          date: entryDate,
+          createdAt: nowCreated,
           designNo: designNo.toUpperCase(),
           machineNo: machineNo,
           totalStitch: isBreakdown ? 0 : stitches,
@@ -247,7 +259,7 @@ class _DailyBatchEntryMatrixDialogState extends State<DailyBatchEntryMatrixDialo
             ),
             const Divider(height: 32),
 
-            // Top Bar: Account, Date, Shift, Global Design & Rate
+            // Top Bar: Date, Account, Shift, Global Design & Rate
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -257,6 +269,46 @@ class _DailyBatchEntryMatrixDialogState extends State<DailyBatchEntryMatrixDialo
               ),
               child: Row(
                 children: [
+                  // Production Date Picker
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Date *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        InkWell(
+                          onTap: _pickDate,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            height: 38,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: AppTheme.border(context)),
+                              borderRadius: BorderRadius.circular(8),
+                              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  DateFormat('dd-MM-yyyy').format(_selectedDate),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.5,
+                                    color: AppTheme.textPrimary(context),
+                                  ),
+                                ),
+                                Icon(Icons.calendar_today_rounded, size: 15, color: accent),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
                   // Account
                   Expanded(
                     flex: 2,

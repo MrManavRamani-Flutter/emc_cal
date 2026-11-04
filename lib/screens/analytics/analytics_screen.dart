@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
 import '../../core/localization/app_strings.dart';
+import '../../models/production_record.dart';
 import '../../providers/production_provider.dart';
 
 class AnalyticsScreen extends StatefulWidget {
@@ -27,6 +28,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   // Chart Mode: 0 = Date-wise Trend, 1 = Machine Comparison, 2 = Shift Breakdown
   int _chartMode = 0;
+
+  // Detailed Table Sorting
+  int _tableSortColumnIndex = 1;
+  bool _tableSortAscending = false;
 
   Timer? _refreshTimer;
   int _lastConfiguredInterval = -1;
@@ -532,31 +537,136 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         )
                       : LayoutBuilder(
                           builder: (context, constraints) {
+                            final tableRecords = List<ProductionRecord>.from(records);
+                            tableRecords.sort((a, b) {
+                              int cmp = 0;
+                              switch (_tableSortColumnIndex) {
+                                case 0:
+                                  cmp = (a.id ?? 0).compareTo(b.id ?? 0);
+                                  break;
+                                case 1:
+                                  cmp = a.date.compareTo(b.date);
+                                  break;
+                                case 2:
+                                  cmp = a.shift.toLowerCase().compareTo(b.shift.toLowerCase());
+                                  break;
+                                case 3:
+                                  cmp = a.accountName.toLowerCase().compareTo(b.accountName.toLowerCase());
+                                  break;
+                                case 4:
+                                  cmp = a.machineNo.toLowerCase().compareTo(b.machineNo.toLowerCase());
+                                  break;
+                                case 5:
+                                  cmp = a.designNo.toLowerCase().compareTo(b.designNo.toLowerCase());
+                                  break;
+                                case 6:
+                                  cmp = a.totalStitch.compareTo(b.totalStitch);
+                                  break;
+                                case 7:
+                                  cmp = a.heads.compareTo(b.heads);
+                                  break;
+                                case 8:
+                                  cmp = a.rate.compareTo(b.rate);
+                                  break;
+                                case 9:
+                                  cmp = a.finalAmount.compareTo(b.finalAmount);
+                                  break;
+                                default:
+                                  cmp = a.date.compareTo(b.date);
+                              }
+                              return _tableSortAscending ? cmp : -cmp;
+                            });
+
                             return SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(minWidth: constraints.maxWidth),
                                 child: DataTable(
+                                  sortColumnIndex: _tableSortColumnIndex,
+                                  sortAscending: _tableSortAscending,
                                   headingRowHeight: 44,
                                   dataRowMinHeight: 48,
                                   dataRowMaxHeight: 52,
                                   horizontalMargin: 16,
                                   columnSpacing: 18,
                                   headingRowColor: WidgetStateProperty.all(AppTheme.tableHeaderBg(context)),
-                                  columns: const [
-                                    DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Shift', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Khata (Account)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Machine No.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Design No.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Total Stitch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Heads', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Final Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                    DataColumn(label: Text('Dahao Screen Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                                  columns: [
+                                    DataColumn(
+                                      label: const Text('#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
+                                    DataColumn(
+                                      label: const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
+                                    DataColumn(
+                                      label: const Text('Shift', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
+                                    DataColumn(
+                                      label: const Text('Khata (Account)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
+                                    DataColumn(
+                                      label: const Text('Machine No.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
+                                    DataColumn(
+                                      label: const Text('Design No.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
+                                    DataColumn(
+                                      numeric: true,
+                                      label: const Text('Total Stitch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
+                                    DataColumn(
+                                      numeric: true,
+                                      label: const Text('Heads', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
+                                    DataColumn(
+                                      numeric: true,
+                                      label: const Text('Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
+                                    DataColumn(
+                                      numeric: true,
+                                      label: const Text('Final Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onSort: (idx, asc) => setState(() {
+                                        _tableSortColumnIndex = idx;
+                                        _tableSortAscending = asc;
+                                      }),
+                                    ),
                                   ],
-                                  rows: records.asMap().entries.map((entry) {
+                                  rows: tableRecords.asMap().entries.map((entry) {
                                     final index = entry.key + 1;
                                     final r = entry.value;
 
@@ -610,16 +720,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                           Text(
                                             '₹ ${NumberFormat('#,##,###.00').format(r.finalAmount)}',
                                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppTheme.successGreenDark),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          ConstrainedBox(
-                                            constraints: const BoxConstraints(maxWidth: 240),
-                                            child: Text(
-                                              r.notes,
-                                              style: TextStyle(fontSize: 11, color: AppTheme.textMuted(context)),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
                                           ),
                                         ),
                                       ],

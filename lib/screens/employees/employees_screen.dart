@@ -35,6 +35,12 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   DateTime? _upadFromDate;
   DateTime? _upadToDate;
 
+  // Sorting state for Master Register & Upad Ledger
+  int _empSortColumnIndex = 1;
+  bool _empSortAscending = true;
+  int _upadSortColumnIndex = 1;
+  bool _upadSortAscending = false;
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -928,7 +934,49 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     List<String> allRolesList,
     bool isDark,
   ) {
-    final employees = provider.filteredEmployees;
+    final employees = List<EmployeeModel>.from(provider.filteredEmployees);
+    employees.sort((a, b) {
+      int cmp = 0;
+      switch (_empSortColumnIndex) {
+        case 0:
+          cmp = (a.id ?? 0).compareTo(b.id ?? 0);
+          break;
+        case 1:
+          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          break;
+        case 2:
+          cmp = a.role.toLowerCase().compareTo(b.role.toLowerCase());
+          break;
+        case 3:
+          cmp = a.phone.toLowerCase().compareTo(b.phone.toLowerCase());
+          break;
+        case 4:
+          cmp = a.monthlySalary.compareTo(b.monthlySalary);
+          break;
+        case 5:
+          final upadA = a.id != null ? provider.getEmployeeAllTimeTotalUpad(a.id!) : 0.0;
+          final upadB = b.id != null ? provider.getEmployeeAllTimeTotalUpad(b.id!) : 0.0;
+          cmp = upadA.compareTo(upadB);
+          break;
+        case 6:
+          final pendA = a.id != null ? provider.getEmployeeTotalUpad(a.id!, unsettledOnly: true) : 0.0;
+          final pendB = b.id != null ? provider.getEmployeeTotalUpad(b.id!, unsettledOnly: true) : 0.0;
+          cmp = pendA.compareTo(pendB);
+          break;
+        case 7:
+          final netA = provider.getEmployeeRemainingSalary(a);
+          final netB = provider.getEmployeeRemainingSalary(b);
+          cmp = netA.compareTo(netB);
+          break;
+        case 8:
+          cmp = (a.isActive ? 1 : 0).compareTo(b.isActive ? 1 : 0);
+          break;
+        default:
+          cmp = a.name.compareTo(b.name);
+      }
+      return _empSortAscending ? cmp : -cmp;
+    });
+
     final lang = provider.settings.appLanguage;
 
     final totalMonthlySalary = employees.fold<double>(0.0, (s, e) => s + e.monthlySalary);
@@ -1039,6 +1087,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minWidth: constraints.maxWidth),
                   child: DataTable(
+                    sortColumnIndex: _empSortColumnIndex,
+                    sortAscending: _empSortAscending,
                     headingRowColor: WidgetStateProperty.all(isDark ? AppTheme.darkSurfaceSubtle : const Color(0xFFF1F5F9)),
                     headingTextStyle: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -1050,15 +1100,73 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                     columnSpacing: dynamicSpacing,
                     horizontalMargin: 12,
               columns: [
-                const DataColumn(label: Text('#')),
-                DataColumn(label: Text(AppStrings.t(lang, en: 'Employee Name', gu: 'કર્મચારી નામ', hi: 'कर्मचारी का नाम'))),
-                DataColumn(label: Text(AppStrings.t(lang, en: 'Role', gu: 'રોલ', hi: 'भूमिका'))),
-                DataColumn(label: Text(AppStrings.t(lang, en: 'Phone', gu: 'મોબાઇલ', hi: 'फ़ोन'))),
-                DataColumn(label: Text(AppStrings.t(lang, en: 'Salary (₹)', gu: 'માસિક પગાર (₹)', hi: 'मासिक वेतन (₹)'))),
-                DataColumn(label: Text(AppStrings.t(lang, en: 'Total All Advances (₹)', gu: 'કુલ ઐતિહાસિક ઉપાડ (₹)', hi: 'कुल अग्रिम (₹)'))),
-                DataColumn(label: Text(AppStrings.t(lang, en: 'Salary Deduct Advance (₹)', gu: 'પગાર કપાત ઉપાડ (₹)', hi: 'वेतन कटौती अग्रिम (₹)'))),
-                DataColumn(label: Text(AppStrings.t(lang, en: 'Net Due (₹)', gu: 'ચૂકવવાપાત્ર ચોખ્ખો પગાર (₹)', hi: 'देय शुद्ध वेतन (₹)'))),
-                DataColumn(label: Text(AppStrings.t(lang, en: 'Status', gu: 'સ્ટેટસ', hi: 'स्थिति'))),
+                DataColumn(
+                  label: const Text('#'),
+                  onSort: (idx, asc) => setState(() {
+                    _empSortColumnIndex = idx;
+                    _empSortAscending = asc;
+                  }),
+                ),
+                DataColumn(
+                  label: Text(AppStrings.t(lang, en: 'Employee Name', gu: 'કર્મચારી નામ', hi: 'कर्मचारी का नाम')),
+                  onSort: (idx, asc) => setState(() {
+                    _empSortColumnIndex = idx;
+                    _empSortAscending = asc;
+                  }),
+                ),
+                DataColumn(
+                  label: Text(AppStrings.t(lang, en: 'Role', gu: 'રોલ', hi: 'भूमिका')),
+                  onSort: (idx, asc) => setState(() {
+                    _empSortColumnIndex = idx;
+                    _empSortAscending = asc;
+                  }),
+                ),
+                DataColumn(
+                  label: Text(AppStrings.t(lang, en: 'Phone', gu: 'મોબાઇલ', hi: 'फ़ोन')),
+                  onSort: (idx, asc) => setState(() {
+                    _empSortColumnIndex = idx;
+                    _empSortAscending = asc;
+                  }),
+                ),
+                DataColumn(
+                  numeric: true,
+                  label: Text(AppStrings.t(lang, en: 'Salary (₹)', gu: 'માસિક પગાર (₹)', hi: 'मासिक वेतन (₹)')),
+                  onSort: (idx, asc) => setState(() {
+                    _empSortColumnIndex = idx;
+                    _empSortAscending = asc;
+                  }),
+                ),
+                DataColumn(
+                  numeric: true,
+                  label: Text(AppStrings.t(lang, en: 'Total All Advances (₹)', gu: 'કુલ ઐતિહાસિક ઉપાડ (₹)', hi: 'कुल अग्रिम (₹)')),
+                  onSort: (idx, asc) => setState(() {
+                    _empSortColumnIndex = idx;
+                    _empSortAscending = asc;
+                  }),
+                ),
+                DataColumn(
+                  numeric: true,
+                  label: Text(AppStrings.t(lang, en: 'Salary Deduct Advance (₹)', gu: 'પગાર કપાત ઉપાડ (₹)', hi: 'वेतन कटौती अग्रिम (₹)')),
+                  onSort: (idx, asc) => setState(() {
+                    _empSortColumnIndex = idx;
+                    _empSortAscending = asc;
+                  }),
+                ),
+                DataColumn(
+                  numeric: true,
+                  label: Text(AppStrings.t(lang, en: 'Net Due (₹)', gu: 'ચૂકવવાપાત્ર ચોખ્ખો પગાર (₹)', hi: 'देय शुद्ध वेतन (₹)')),
+                  onSort: (idx, asc) => setState(() {
+                    _empSortColumnIndex = idx;
+                    _empSortAscending = asc;
+                  }),
+                ),
+                DataColumn(
+                  label: Text(AppStrings.t(lang, en: 'Status', gu: 'સ્ટેટસ', hi: 'स्थिति')),
+                  onSort: (idx, asc) => setState(() {
+                    _empSortColumnIndex = idx;
+                    _empSortAscending = asc;
+                  }),
+                ),
                 DataColumn(label: Text(AppStrings.t(lang, en: 'Action', gu: 'એક્શન', hi: 'कार्रवाई'))),
               ],
               rows: employees.asMap().entries.map((entry) {
@@ -1297,6 +1405,33 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       return true;
     }).toList();
 
+    filteredUpads.sort((a, b) {
+      int cmp = 0;
+      switch (_upadSortColumnIndex) {
+        case 0:
+          cmp = (a.id ?? 0).compareTo(b.id ?? 0);
+          break;
+        case 1:
+          cmp = a.date.compareTo(b.date);
+          break;
+        case 2:
+          cmp = a.employeeName.toLowerCase().compareTo(b.employeeName.toLowerCase());
+          break;
+        case 3:
+          cmp = a.amount.compareTo(b.amount);
+          break;
+        case 4:
+          cmp = a.notes.toLowerCase().compareTo(b.notes.toLowerCase());
+          break;
+        case 5:
+          cmp = (a.isSettled ? 1 : 0).compareTo(b.isSettled ? 1 : 0);
+          break;
+        default:
+          cmp = a.date.compareTo(b.date);
+      }
+      return _upadSortAscending ? cmp : -cmp;
+    });
+
     final totalFilteredUpad = filteredUpads.fold<double>(0.0, (s, u) => s + u.amount);
     final totalPendingFiltered = filteredUpads.where((u) => !u.isSettled).fold<double>(0.0, (s, u) => s + u.amount);
     final totalSettledFiltered = filteredUpads.where((u) => u.isSettled).fold<double>(0.0, (s, u) => s + u.amount);
@@ -1457,6 +1592,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                       child: ConstrainedBox(
                         constraints: BoxConstraints(minWidth: constraints.maxWidth),
                         child: DataTable(
+                          sortColumnIndex: _upadSortColumnIndex,
+                          sortAscending: _upadSortAscending,
                           headingRowColor: WidgetStateProperty.all(isDark ? AppTheme.darkSurfaceSubtle : const Color(0xFFF1F5F9)),
                           headingTextStyle: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -1468,12 +1605,49 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                           columnSpacing: dynamicSpacing,
                           horizontalMargin: 16,
                     columns: [
-                      const DataColumn(label: Text('#')),
-                      DataColumn(label: Text(AppStrings.t(lang, en: 'Date', gu: 'તારીખ', hi: 'तारीख'))),
-                      DataColumn(label: Text(AppStrings.t(lang, en: 'Employee Name', gu: 'કર્મચારી નામ', hi: 'कर्मचारी नाम'))),
-                      DataColumn(label: Text(AppStrings.t(lang, en: 'Advance Amount (₹)', gu: 'ઉપાડ રકમ (₹)', hi: 'अग्रिम राशि (₹)'))),
-                      DataColumn(label: Text(AppStrings.t(lang, en: 'Notes / Reason', gu: 'વિગત / કારણ', hi: 'विवरण / कारण'))),
-                      DataColumn(label: Text(AppStrings.t(lang, en: 'Status', gu: 'સ્થિતિ', hi: 'स्थिति'))),
+                      DataColumn(
+                        label: const Text('#'),
+                        onSort: (idx, asc) => setState(() {
+                          _upadSortColumnIndex = idx;
+                          _upadSortAscending = asc;
+                        }),
+                      ),
+                      DataColumn(
+                        label: Text(AppStrings.t(lang, en: 'Date', gu: 'તારીખ', hi: 'तारीख')),
+                        onSort: (idx, asc) => setState(() {
+                          _upadSortColumnIndex = idx;
+                          _upadSortAscending = asc;
+                        }),
+                      ),
+                      DataColumn(
+                        label: Text(AppStrings.t(lang, en: 'Employee Name', gu: 'કર્મચારી નામ', hi: 'कर्मचारी नाम')),
+                        onSort: (idx, asc) => setState(() {
+                          _upadSortColumnIndex = idx;
+                          _upadSortAscending = asc;
+                        }),
+                      ),
+                      DataColumn(
+                        numeric: true,
+                        label: Text(AppStrings.t(lang, en: 'Advance Amount (₹)', gu: 'ઉપાડ રકમ (₹)', hi: 'अग्रिम राशि (₹)')),
+                        onSort: (idx, asc) => setState(() {
+                          _upadSortColumnIndex = idx;
+                          _upadSortAscending = asc;
+                        }),
+                      ),
+                      DataColumn(
+                        label: Text(AppStrings.t(lang, en: 'Notes / Reason', gu: 'વિગત / કારણ', hi: 'विवरण / कारण')),
+                        onSort: (idx, asc) => setState(() {
+                          _upadSortColumnIndex = idx;
+                          _upadSortAscending = asc;
+                        }),
+                      ),
+                      DataColumn(
+                        label: Text(AppStrings.t(lang, en: 'Status', gu: 'સ્થિતિ', hi: 'स्थिति')),
+                        onSort: (idx, asc) => setState(() {
+                          _upadSortColumnIndex = idx;
+                          _upadSortAscending = asc;
+                        }),
+                      ),
                       DataColumn(label: Text(AppStrings.t(lang, en: 'Action', gu: 'એક્શન', hi: 'कार्रवाई'))),
                     ],
                     rows: filteredUpads.asMap().entries.map((entry) {

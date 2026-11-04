@@ -81,6 +81,7 @@ class DatabaseHelper {
           CREATE TABLE production_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL,
+            created_at TEXT,
             design_no TEXT NOT NULL,
             machine_no TEXT NOT NULL,
             total_stitch INTEGER NOT NULL,
@@ -299,6 +300,9 @@ class DatabaseHelper {
     try {
       await db.execute("ALTER TABLE production_records ADD COLUMN shift TEXT DEFAULT 'Day'");
     } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE production_records ADD COLUMN created_at TEXT");
+    } catch (_) {}
 
     // 4. Fill and update any legacy values in production_records
     try {
@@ -307,6 +311,7 @@ class DatabaseHelper {
       await db.execute("UPDATE production_records SET account_name = 'Beads' WHERE account_name = 'Beads Khatu'");
       await db.execute("UPDATE production_records SET account_name = '250 Area' WHERE account_name IS NULL OR account_name = ''");
       await db.execute("UPDATE production_records SET shift = 'Day' WHERE shift IS NULL OR shift = ''");
+      await db.execute("UPDATE production_records SET created_at = date || 'T12:00:00' WHERE created_at IS NULL OR created_at = ''");
     } catch (_) {}
 
     // 5. Ensure all 8 Dahao factory machines exist (M-01 to M-08)

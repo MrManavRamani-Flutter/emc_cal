@@ -25,7 +25,6 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
   final _formKey = GlobalKey<FormState>();
 
   late DateTime _selectedDate;
-  late TimeOfDay _selectedTime;
   late TextEditingController _designController;
   late TextEditingController _stitchController;
   late TextEditingController _rateController;
@@ -49,9 +48,8 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
     final provider = context.read<ProductionProvider>();
     final now = DateTime.now();
 
-    // Default to current date and current time for new entries
-    _selectedDate = rec?.date ?? now;
-    _selectedTime = rec != null ? TimeOfDay(hour: rec.date.hour, minute: rec.date.minute) : TimeOfDay.now();
+    // Default to current date for new entries (strip time)
+    _selectedDate = rec?.date ?? DateTime(now.year, now.month, now.day);
 
     _designController = TextEditingController(text: rec?.designNo ?? '');
     _isBreakdown = (rec != null && rec.totalStitch == 0);
@@ -121,12 +119,10 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
     final provider = context.read<ProductionProvider>();
     final isEdit = widget.existingRecord != null;
 
-    final combinedDate = DateTime(
+    final entryDate = DateTime(
       _selectedDate.year,
       _selectedDate.month,
       _selectedDate.day,
-      _selectedTime.hour,
-      _selectedTime.minute,
     );
 
     final effectiveNotes = _parsedStitch == 0
@@ -136,7 +132,8 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
     if (isEdit) {
       await provider.updateRecord(
         id: widget.existingRecord!.id!,
-        date: combinedDate,
+        date: entryDate,
+        createdAt: widget.existingRecord!.createdAt,
         designNo: _designController.text,
         machineNo: _selectedMachine!,
         totalStitch: _parsedStitch,
@@ -148,7 +145,8 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
       );
     } else {
       await provider.addRecord(
-        date: combinedDate,
+        date: entryDate,
+        createdAt: DateTime.now(),
         designNo: _designController.text,
         machineNo: _selectedMachine!,
         totalStitch: _parsedStitch,
@@ -164,18 +162,11 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
 
     if (addNext && !isEdit) {
       final currentMachine = _selectedMachine!;
-      final machines = provider.machines;
-      String nextMachine = currentMachine;
-      if (machines.isNotEmpty) {
-        final currentIdx = machines.indexWhere((m) => m.machineNo == currentMachine);
-        final nextIdx = (currentIdx >= 0 && currentIdx + 1 < machines.length) ? currentIdx + 1 : 0;
-        nextMachine = machines[nextIdx].machineNo;
-      }
 
       setState(() {
-        _selectedMachine = nextMachine;
         _stitchController.clear();
         _isBreakdown = false;
+        // Keep _selectedMachine so the user can enter another record or manually choose a machine
       });
 
       final lang = provider.settings.appLanguage;
@@ -185,9 +176,9 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
         context,
         title: AppStrings.t(lang, en: '$currentMachine Saved', gu: '$currentMachine સેવ થયો', hi: '$currentMachine सहेजा गया'),
         message: AppStrings.t(lang,
-          en: '$currentMachine saved! Ready for $nextMachine.',
-          gu: '$currentMachine સેવ થઈ ગયું! હવે $nextMachine માટે તૈયાર.',
-          hi: '$currentMachine सहेजा गया! अब $nextMachine के लिए तैयार।',
+          en: '$currentMachine saved! Ready to add more entries.',
+          gu: '$currentMachine સેવ થઈ ગયું! વધુ એન્ટ્રી કરવા માટે તૈયાર.',
+          hi: '$currentMachine सहेजा गया! और प्रविष्टि करने के लिए तैयार।',
         ),
       );
     } else {
@@ -229,16 +220,6 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
-    }
-  }
-
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-    );
-    if (picked != null) {
-      setState(() => _selectedTime = picked);
     }
   }
 
@@ -545,13 +526,13 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
                     ),
                     const SizedBox(height: 16),
 
-                    // SECTION 2: DATE, TIME & SHIFT
+                    // SECTION 2: DATE & SHIFT
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Date Picker (Current date by default)
                         Expanded(
-                          flex: 4,
+                          flex: 1,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -596,56 +577,9 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
                         ),
                         const SizedBox(width: 14),
 
-                        // Time Picker (Current time by default)
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                AppStrings.t(provider.settings.appLanguage, en: 'Time', gu: 'સમય', hi: 'समय'),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                  color: AppTheme.textPrimary(context),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              InkWell(
-                                onTap: _pickTime,
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  height: 48,
-                                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: borderColor),
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: inputFill,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        _selectedTime.format(context),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                          color: AppTheme.textPrimary(context),
-                                        ),
-                                      ),
-                                      Icon(Icons.access_time_rounded, size: 16, color: accent),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-
                         // Shift Toggle (Day / Night)
                         Expanded(
-                          flex: 4,
+                          flex: 1,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1007,12 +941,12 @@ class _AddEditRecordDialogState extends State<AddEditRecordDialog> {
                           ),
                           child: Text('Cancel (Esc)', style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.w600)),
                         ),
-                        if (!isEdit && provider.machines.length > 1) ...[
+                        if (!isEdit) ...[
                           OutlinedButton.icon(
                             onPressed: () => _submitForm(addNext: true),
-                            icon: const Icon(Icons.skip_next_rounded, size: 18),
+                            icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
                             label: const Text(
-                              'Save & Next Machine (Shift+Enter)',
+                              'Save & Add More (Shift+Enter)',
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             style: OutlinedButton.styleFrom(
