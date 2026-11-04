@@ -342,12 +342,12 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${AppStrings.t(lang, en: "Supplier / Vendor (માલ આપનાર વેપારી)", gu: "વેપારી (માલ આપનાર)", hi: "सप्लायर (सामग्री आपूर्तिकर्ता)")}: ${ch.supplierName}',
+                      '${AppStrings.t(lang, en: "Supplier / Vendor", gu: "વેપારી (માલ આપનાર)", hi: "सप्लायर (सामग्री आपूर्तिकर्ता)")}: ${ch.supplierName}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${AppStrings.t(lang, en: "Total Purchase Bill (કુલ ખરીદી બિલ)", gu: "કુલ ખરીદી બિલ", hi: "कुल खरीद बिल")}: ₹ ${NumberFormat("#,##,###.00").format(ch.totalAmount)}',
+                      '${AppStrings.t(lang, en: "Total Purchase Bill", gu: "કુલ ખરીદી બિલ", hi: "कुल खरीद बिल")}: ₹ ${NumberFormat("#,##,###.00").format(ch.totalAmount)}',
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF2563EB)),
                     ),
                     const SizedBox(height: 4),
@@ -374,7 +374,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                     Icon(isCurrentlyPaid ? Icons.check_circle : Icons.pending, size: 14, color: isCurrentlyPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                     const SizedBox(width: 6),
                     Text(
-                      'Current Status: ${isCurrentlyPaid ? AppStrings.t(lang, en: "Paid to Supplier (સપ્લાયરને ચૂકતે)", gu: "સપ્લાયરને ચૂકતે થયેલ", hi: "सप्लायर को भुगतान किया") : AppStrings.t(lang, en: "Payable to Supplier / Due (સપ્લાયરને ચૂકવવાનું બાકી)", gu: "સપ્લાયરને ચૂકવવાનું બાકી", hi: "सप्लायर को देय बाकी")}',
+                      'Current Status: ${isCurrentlyPaid ? AppStrings.t(lang, en: "Paid to Supplier", gu: "સપ્લાયરને ચૂકતે થયેલ", hi: "सप्लायर को भुगतान किया") : AppStrings.t(lang, en: "Payable to Supplier / Due", gu: "સપ્લાયરને ચૂકવવાનું બાકી", hi: "सप्लायर को देय बाकी")}',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isCurrentlyPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                     ),
                   ],

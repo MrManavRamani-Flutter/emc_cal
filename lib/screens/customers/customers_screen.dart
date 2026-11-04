@@ -410,8 +410,10 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                           ),
                           Text(
                             paidAmt <= 0
-                                ? '⏳ Pura Baki (પૂરું બાકી)'
-                                : (paidAmt >= totalAmt ? '🟢 Full Paid (પૂરું ચૂકતે)' : '🟡 Partial (અંશતઃ જમા)'),
+                                ? AppStrings.t(lang, en: '⏳ Unpaid', gu: '⏳ પૂરું બાકી', hi: '⏳ पूरा बकाया')
+                                : (paidAmt >= totalAmt
+                                    ? AppStrings.t(lang, en: '🟢 Full Paid', gu: '🟢 પૂરું ચૂકતે', hi: '🟢 पूरा चुकता')
+                                    : AppStrings.t(lang, en: '🟡 Partial', gu: '🟡 અંશતઃ જમા', hi: '🟡 आंशिक जमा')),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -439,7 +441,7 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                                 advanceController.clear();
                               }),
                               label: Text(
-                                AppStrings.t(lang, en: 'Pura Baki (Unpaid)', gu: 'પૂરું બાકી (Unpaid)', hi: 'पूरा बकाया (Unpaid)'),
+                                AppStrings.t(lang, en: 'Unpaid (Full Due)', gu: 'પૂરું બાકી (Unpaid)', hi: 'पूरा बकाया (Unpaid)'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
@@ -467,7 +469,7 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                                 }
                               }),
                               label: Text(
-                                AppStrings.t(lang, en: 'Full Payment (Paid)', gu: 'પૂરું ચૂકતે (Full Paid)', hi: 'पूर्ण भुगतान (Paid)'),
+                                AppStrings.t(lang, en: 'Full Payment', gu: 'પૂરું ચૂકતે (Full Paid)', hi: 'पूर्ण भुगतान (Paid)'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
@@ -487,7 +489,7 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
                         decoration: InputDecoration(
                           labelText: AppStrings.t(lang,
-                              en: 'Received Amount (₹) - Enter any custom amount or leave 0',
+                              en: 'Received Amount (₹)',
                               gu: 'જમા મળેલ રકમ (₹) - તમારી મરજી મુજબ રકમ લખો અથવા 0 રાખો',
                               hi: 'प्राप्त राशि (₹) - इच्छानुसार राशि दर्ज करें या 0 रखें'),
                           hintText: 'e.g. 500, 2000, 10000...',
@@ -513,21 +515,21 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Total Invoiced', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                Text(AppStrings.t(lang, en: 'Total Invoiced', gu: 'કુલ બિલ રકમ', hi: 'कुल बिल राशि'), style: const TextStyle(fontSize: 10, color: Colors.grey)),
                                 Text('₹${NumberFormat('#,##,###.00').format(totalAmt)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                const Text('Received Now', style: TextStyle(fontSize: 10, color: Color(0xFF10B981))),
+                                Text(AppStrings.t(lang, en: 'Received Now', gu: 'જમા રકમ', hi: 'प्राप्त राशि'), style: const TextStyle(fontSize: 10, color: Color(0xFF10B981))),
                                 Text('₹${NumberFormat('#,##,###.00').format(paidAmt)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text('Remaining Due (બાકી)', style: TextStyle(fontSize: 10, color: dueAmt > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981))),
+                                Text(AppStrings.t(lang, en: 'Remaining Due', gu: 'બાકી રકમ', hi: 'बकाया राशि'), style: TextStyle(fontSize: 10, color: dueAmt > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981))),
                                 Text('₹${NumberFormat('#,##,###.00').format(dueAmt)}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: dueAmt > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981))),
                               ],
                             ),
@@ -754,8 +756,10 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                           ),
                           Text(
                             currentPaid <= 0
-                                ? '⏳ Pura Baki (પૂરું બાકી)'
-                                : (currentPaid >= totalAmt ? '🟢 Full Paid (પૂરું ચૂકતે)' : '🟡 Partial (અંશતઃ જમા)'),
+                                ? AppStrings.t(lang, en: '⏳ Unpaid', gu: '⏳ પૂરું બાકી', hi: '⏳ पूरा बकाया')
+                                : (currentPaid >= totalAmt
+                                    ? AppStrings.t(lang, en: '🟢 Full Paid', gu: '🟢 પૂરું ચૂકતે', hi: '🟢 पूरा चुकता')
+                                    : AppStrings.t(lang, en: '🟡 Partial', gu: '🟡 અંશતઃ જમા', hi: '🟡 आंशिक जमा')),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -782,7 +786,7 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                                 });
                               },
                               label: Text(
-                                AppStrings.t(lang, en: 'Pura Baki (Unpaid)', gu: 'પૂરું બાકી (Unpaid)', hi: 'पूरा बकाया (Unpaid)'),
+                                AppStrings.t(lang, en: 'Unpaid (Full Due)', gu: 'પૂરું બાકી (Unpaid)', hi: 'पूरा बकाया (Unpaid)'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
@@ -807,7 +811,7 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                                 });
                               },
                               label: Text(
-                                AppStrings.t(lang, en: 'Full Payment (Paid)', gu: 'પૂરું ચૂકતે (Full Paid)', hi: 'पूर्ण भुगतान (Paid)'),
+                                AppStrings.t(lang, en: 'Full Payment', gu: 'પૂરું ચૂકતે (Full Paid)', hi: 'पूर्ण भुगतान (Paid)'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
@@ -831,7 +835,7 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                         ),
                         decoration: InputDecoration(
                           labelText: AppStrings.t(lang,
-                              en: 'Paid / Received Amount (₹) - Enter any custom amount',
+                              en: 'Received Amount (₹)',
                               gu: 'જમા થયેલ રકમ (₹) - તમારી મરજી મુજબ રકમ લખો',
                               hi: 'प्राप्त राशि (₹) - इच्छानुसार राशि दर्ज करें'),
                           prefixText: '₹ ',
@@ -856,21 +860,21 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Total Invoiced', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                Text(AppStrings.t(lang, en: 'Total Invoiced', gu: 'કુલ બિલ રકમ', hi: 'कुल बिल राशि'), style: const TextStyle(fontSize: 10, color: Colors.grey)),
                                 Text('₹${NumberFormat('#,##,###.00').format(totalAmt)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                const Text('Received (જમા)', style: TextStyle(fontSize: 10, color: Color(0xFF10B981))),
+                                Text(AppStrings.t(lang, en: 'Received', gu: 'જમા રકમ', hi: 'प्राप्त राशि'), style: const TextStyle(fontSize: 10, color: Color(0xFF10B981))),
                                 Text('₹${NumberFormat('#,##,###.00').format(currentPaid)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text('Pending Due (બાકી)', style: TextStyle(fontSize: 10, color: currentDue > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981))),
+                                Text(AppStrings.t(lang, en: 'Pending Due', gu: 'બાકી રકમ', hi: 'बकाया राशि'), style: TextStyle(fontSize: 10, color: currentDue > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981))),
                                 Text('₹${NumberFormat('#,##,###.00').format(currentDue)}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: currentDue > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981))),
                               ],
                             ),
@@ -1024,21 +1028,21 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Total Bill', style: TextStyle(fontSize: 11, color: isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B))),
+                            Text(AppStrings.t(lang, en: 'Total Bill', gu: 'કુલ બિલ', hi: 'कुल बिल'), style: TextStyle(fontSize: 11, color: isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B))),
                             Text('₹${NumberFormat('#,##,###.00').format(bill.totalAmount)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                           ],
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const Text('Received', style: TextStyle(fontSize: 11, color: Color(0xFF10B981))),
+                            Text(AppStrings.t(lang, en: 'Received', gu: 'જમા રકમ', hi: 'प्राप्त'), style: const TextStyle(fontSize: 11, color: Color(0xFF10B981))),
                             Text('₹${NumberFormat('#,##,###.00').format(bill.paidAmount)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
                           ],
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('Remaining Due', style: TextStyle(fontSize: 11, color: remaining > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981))),
+                            Text(AppStrings.t(lang, en: 'Remaining Due', gu: 'બાકી રકમ', hi: 'बकाया राशि'), style: TextStyle(fontSize: 11, color: remaining > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981))),
                             Text('₹${NumberFormat('#,##,###.00').format(remaining)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: remaining > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981))),
                           ],
                         ),
@@ -1077,7 +1081,10 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             ),
                             icon: const Icon(Icons.edit_note_rounded, size: 16),
-                            label: const Text('Edit to Unpaid', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            label: Text(
+                              AppStrings.t(lang, en: 'Edit to Unpaid', gu: 'બાકી કરો (Edit)', hi: 'बकाया करें (Edit)'),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
                             onPressed: () {
                               Navigator.of(ctx).pop();
                               _openEditCustomerBillDialog(bill);
@@ -1112,7 +1119,7 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                       ActionChip(
                         avatar: const Icon(Icons.refresh_rounded, size: 15, color: Color(0xFF64748B)),
                         label: Text(
-                          AppStrings.t(lang, en: 'Clear / Custom', gu: '🔄 રકમ સાફ કરો (Custom)', hi: '🔄 राशि साफ़ करें'),
+                          AppStrings.t(lang, en: 'Clear', gu: 'સાફ કરો', hi: 'साफ़ करें'),
                           style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
                         ),
                         onPressed: () {
@@ -1136,9 +1143,9 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                     ),
                     decoration: InputDecoration(
                       labelText: AppStrings.t(lang,
-                          en: 'Payment Amount to Collect (₹) - Enter any custom amount',
-                          gu: 'જમા કરવાની રકમ (₹) - તમારી મરજી મુજબ રકમ લખો',
-                          hi: 'जमा करने की राशि (₹) - इच्छानुसार राशि दर्ज करें'),
+                          en: 'Payment Amount to Collect (₹)',
+                          gu: 'જમા કરવાની રકમ (₹)',
+                          hi: 'जमा करने की राशि (₹)'),
                       prefixText: '₹ ',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1177,7 +1184,7 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                                           gu: '✅ બિલ સંપૂર્ણ ચૂકતે થશે! વધારે/એડવાન્સ: ₹${(enteredVal - remaining).toStringAsFixed(2)}',
                                           hi: '✅ बिल पूर्ण चुकता होगा! अतिरिक्त: ₹${(enteredVal - remaining).toStringAsFixed(2)}')
                                       : AppStrings.t(lang,
-                                          en: '✅ Bill will be marked as FULLY PAID (ચૂકતે)',
+                                          en: '✅ Bill will be marked as FULLY PAID',
                                           gu: '✅ બિલ પૂરું ચૂકતે (FULL PAID) થઈ જશે',
                                           hi: '✅ बिल पूर्ण चुकता (FULL PAID) हो जाएगा'))
                                   : AppStrings.t(lang,
@@ -2035,7 +2042,7 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                 Expanded(
                   child: Text(
                     AppStrings.t(lang,
-                        en: '💡 Jobwork Payment Flow: 1. Create bills as "Unpaid (બાકી)" ➔ 2. When cash or UPI is received, click "Collect (💳)" to record payment ➔ 3. If a bill was wrongly marked Paid, click "Edit (✏️)" to mark it Unpaid.',
+                        en: '💡 Jobwork Payment Flow: 1. Create bills as "Unpaid" ➔ 2. When cash or UPI is received, click "Collect (💳)" to record payment ➔ 3. If a bill was wrongly marked Paid, click "Edit (✏️)" to mark it Unpaid.',
                         gu: '💡 ચૂકવણી પ્રક્રિયા (Payment Flow): ૧. નવું બિલ હંમેશા "Unpaid (બાકી)" બનાવો ➔ ૨. પાર્ટી પાસેથી રકમ આવે ત્યારે ટેબલમાં "Collect (💳)" દબાવીને રકમ જમા કરો ➔ ૩. જો ભૂલથી બિલ Paid થઈ ગયું હોય તો "Edit (✏️)" દબાવીને પાછું Unpaid (બાકી) કરી શકો છો.',
                         hi: '💡 भुगतान प्रक्रिया: 1. नया बिल "Unpaid (बकाया)" बनाएं ➔ 2. राशि मिलने पर टेबल में "Collect (💳)" से जमा करें ➔ 3. यदि गलती से Paid हुआ हो तो "Edit (✏️)" दबाकर वापस Unpaid करें।'),
                     style: TextStyle(
@@ -2220,17 +2227,17 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                               IconButton(
                                 icon: const Icon(Icons.add_card_rounded, size: 18, color: Color(0xFF10B981)),
                                 onPressed: () => _openRecordCustomerPaymentDialog(bill),
-                                tooltip: 'Collect Payment (રકમ જમા કરો)',
+                                tooltip: AppStrings.t(lang, en: 'Collect Payment', gu: 'રકમ જમા કરો', hi: 'भुगतान जमा करें'),
                               ),
                             IconButton(
                               icon: const Icon(Icons.edit_note_rounded, size: 20, color: Color(0xFF6366F1)),
                               onPressed: () => _openEditCustomerBillDialog(bill),
-                              tooltip: 'Edit Bill / Change Status (બિલ સુધારો)',
+                              tooltip: AppStrings.t(lang, en: 'Edit Bill / Change Status', gu: 'બિલ સુધારો', hi: 'बिल संशोधित करें'),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
                               onPressed: () => _confirmDeleteBill(bill),
-                              tooltip: 'Delete Bill (બિલ કાઢી નાખો)',
+                              tooltip: AppStrings.t(lang, en: 'Delete Bill', gu: 'બિલ કાઢી નાખો', hi: 'बिल हटाएं'),
                             ),
                           ],
                         ),
