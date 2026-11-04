@@ -176,6 +176,40 @@ void main() {
 
       // 5. Verify Net Cash Flow Balance
       expect(provider.netCashFlowBalance, 10000.0 - 2500.0);
+
+      // 6. Test Updating Bill (e.g. Fixing wrongly marked paid bill back to Unpaid)
+      final editedBill = updatedBill.copyWith(
+        paidAmount: 0.0,
+        paymentStatus: 'Unpaid',
+      );
+      await provider.updateCustomerBill(editedBill);
+      final refetchedBill = provider.customerBills.firstWhere((b) => b.id == editedBill.id);
+      expect(refetchedBill.paidAmount, 0.0);
+      expect(refetchedBill.remainingAmount, 25000.0);
+      expect(refetchedBill.paymentStatus, 'Unpaid');
+      expect(refetchedBill.isUnpaid, isTrue);
+
+      // 7. Test Deleting Customer Payment Reverts Bill Balance
+      // First, record a new payment
+      final payment2 = CustomerPaymentModel(
+        billId: refetchedBill.id,
+        customerId: createdCust.id,
+        customerName: createdCust.name,
+        amount: 5000.0,
+        date: DateTime.now(),
+        paymentMode: 'Cash',
+      );
+      await provider.recordCustomerPayment(payment2);
+      final billAfterPay2 = provider.customerBills.firstWhere((b) => b.id == refetchedBill.id);
+      expect(billAfterPay2.paidAmount, 5000.0);
+      expect(billAfterPay2.paymentStatus, 'Partial');
+
+      // Now delete that payment receipt
+      final lastPayment = provider.customerPayments.last;
+      await provider.deleteCustomerPayment(lastPayment.id!);
+      final billAfterDelete = provider.customerBills.firstWhere((b) => b.id == refetchedBill.id);
+      expect(billAfterDelete.paidAmount, 0.0);
+      expect(billAfterDelete.paymentStatus, 'Unpaid');
     });
   });
 }

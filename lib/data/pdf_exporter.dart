@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../models/challan_summary.dart';
 import '../models/material_item.dart';
+import '../models/expense_model.dart';
 
 class PdfExporter {
   /// Converts a numeric amount to English words (Indian numbering system)
@@ -1048,6 +1049,13 @@ class PdfExporter {
       city: city,
     );
 
+    if (Platform.isMacOS) {
+      await _fallbackSaveAndOpenPdf(
+        pdfBytes: pdfBytes,
+        filename: 'Supplier_Statement_${supplierName.replaceAll(" ", "_")}_${DateFormat("yyyyMMdd_HHmmss").format(DateTime.now())}.pdf',
+      );
+      return;
+    }
     try {
       await Printing.layoutPdf(
         name: 'Supplier_Statement_${supplierName.replaceAll(" ", "_")}',
@@ -1116,6 +1124,13 @@ class PdfExporter {
       supplierCity: supplierCity,
       supplierGst: supplierGst,
     );
+    if (Platform.isMacOS) {
+      await _fallbackSaveAndOpenPdf(
+        pdfBytes: pdfBytes,
+        filename: 'Challan_Bill_${challan.challanNo}_${DateFormat("yyyyMMdd_HHmmss").format(DateTime.now())}.pdf',
+      );
+      return;
+    }
     try {
       await Printing.layoutPdf(
         name: 'Challan_Bill_${challan.challanNo}',
@@ -1125,6 +1140,548 @@ class PdfExporter {
       await _fallbackSaveAndOpenPdf(
         pdfBytes: pdfBytes,
         filename: 'Challan_Bill_${challan.challanNo}_${DateFormat("yyyyMMdd_HHmmss").format(DateTime.now())}.pdf',
+      );
+    }
+  }
+
+  /// Generates a PDF report for Expenses:
+  /// either Category-Wise Grouped (`isGroupedByCategory = true`)
+  /// or Detailed Chronological Item Register (`isGroupedByCategory = false`).
+  static Future<Uint8List> generateExpenseReportPdf({
+    required List<ExpenseModel> expenses,
+    required bool isGroupedByCategory,
+    String? companyName,
+    String? periodTitle,
+    String? searchKeyword,
+    Set<String>? activeCategories,
+  }) async {
+    final pdf = pw.Document();
+
+    final totalAmount = expenses.fold(0.0, (sum, e) => sum + e.amount);
+    final totalRecords = expenses.length;
+    final cashAmount = expenses
+        .where((e) => e.paymentMode.toLowerCase().contains('cash'))
+        .fold(0.0, (sum, e) => sum + e.amount);
+    final bankAmount = totalAmount - cashAmount;
+
+    final font = pw.Font.helvetica();
+    final fontBold = pw.Font.helveticaBold();
+    final fontOblique = pw.Font.helveticaOblique();
+
+    // Grouping map
+    final Map<String, List<ExpenseModel>> grouped = {};
+    for (final exp in expenses) {
+      final cat = exp.category.toUpperCase().trim();
+      grouped.putIfAbsent(cat, () => []).add(exp);
+    }
+
+    final sortedCategories = grouped.keys.toList()
+      ..sort((a, b) {
+        final sumA = grouped[a]!.fold(0.0, (s, e) => s + e.amount);
+        final sumB = grouped[b]!.fold(0.0, (s, e) => s + e.amount);
+        return sumB.compareTo(sumA);
+      });
+
+    final effectivePeriod = periodTitle ?? 'All Records';
+    final orgName = (companyName ?? 'OM MAVTAR GROUP').toUpperCase();
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(28),
+        theme: pw.ThemeData.withFont(base: font, bold: fontBold),
+        header: (pw.Context context) {
+          return pw.Container(
+            margin: const pw.EdgeInsets.only(bottom: 12),
+            padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blueGrey900,
+              borderRadius: pw.BorderRadius.circular(6),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      orgName,
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: 15,
+                        color: PdfColors.white,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      isGroupedByCategory
+                          ? 'FACTORY EXPENSES STATEMENT (CATEGORY-WISE GROUPED)'
+                          : 'FACTORY DETAILED EXPENSE REGISTER (ITEMIZED STATEMENT)',
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: 8.5,
+                        color: PdfColors.amber300,
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      'Period: $effectivePeriod',
+                      style: pw.TextStyle(font: fontBold, fontSize: 8.5, color: PdfColors.white),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      'Generated: ${DateFormat("dd-MMM-yyyy hh:mm a").format(DateTime.now())}',
+                      style: const pw.TextStyle(fontSize: 8, color: PdfColors.blueGrey200),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+        footer: (pw.Context context) {
+          return pw.Container(
+            margin: const pw.EdgeInsets.only(top: 10),
+            padding: const pw.EdgeInsets.only(top: 6),
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(top: pw.BorderSide(color: PdfColors.grey300, width: 0.5)),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  'OM MAVTAR GROUP - Offline Production & Accounts Management System',
+                  style: pw.TextStyle(font: fontOblique, fontSize: 7.5, color: PdfColors.grey600),
+                ),
+                pw.Text(
+                  'Page ${context.pageNumber} of ${context.pagesCount}',
+                  style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey700),
+                ),
+              ],
+            ),
+          );
+        },
+        build: (pw.Context context) {
+          return [
+            // KPI Financial Strip
+            pw.Row(
+              children: [
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.red300),
+                      borderRadius: pw.BorderRadius.circular(5),
+                      color: PdfColors.red50,
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Total Filtered Expenses', style: const pw.TextStyle(fontSize: 8, color: PdfColors.red800)),
+                        pw.SizedBox(height: 3),
+                        pw.Text(
+                          'Rs. ${NumberFormat("#,##,###.00").format(totalAmount)}',
+                          style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.red900),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                pw.SizedBox(width: 8),
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.blue200),
+                      borderRadius: pw.BorderRadius.circular(5),
+                      color: PdfColors.blue50,
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Total Entries', style: const pw.TextStyle(fontSize: 8, color: PdfColors.blue800)),
+                        pw.SizedBox(height: 3),
+                        pw.Text(
+                          '$totalRecords Records',
+                          style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.blue900),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                pw.SizedBox(width: 8),
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.indigo200),
+                      borderRadius: pw.BorderRadius.circular(5),
+                      color: PdfColors.indigo50,
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Categories Count', style: const pw.TextStyle(fontSize: 8, color: PdfColors.indigo800)),
+                        pw.SizedBox(height: 3),
+                        pw.Text(
+                          '${sortedCategories.length} Categories',
+                          style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.indigo900),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                pw.SizedBox(width: 8),
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.green200),
+                      borderRadius: pw.BorderRadius.circular(5),
+                      color: PdfColors.green50,
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Cash / Bank Modes', style: const pw.TextStyle(fontSize: 8, color: PdfColors.green800)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          'Cash: Rs. ${NumberFormat("#,##,###").format(cashAmount)}',
+                          style: pw.TextStyle(font: fontBold, fontSize: 8.5, color: PdfColors.green900),
+                        ),
+                        pw.Text(
+                          'Bank: Rs. ${NumberFormat("#,##,###").format(bankAmount)}',
+                          style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+
+            if (isGroupedByCategory) ...[
+              // Summary distribution table
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey200,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text(
+                  'CATEGORY-WISE EXPENSE DISTRIBUTION SUMMARY',
+                  style: pw.TextStyle(font: fontBold, fontSize: 8.5, color: PdfColors.blueGrey900),
+                ),
+              ),
+              pw.SizedBox(height: 6),
+              pw.TableHelper.fromTextArray(
+                headers: ['#', 'Category Name', 'Items Count', 'Total Amount (Rs.)', '% Share'],
+                data: List<List<dynamic>>.generate(sortedCategories.length, (idx) {
+                  final cat = sortedCategories[idx];
+                  final items = grouped[cat]!;
+                  final catSum = items.fold(0.0, (s, e) => s + e.amount);
+                  final pct = totalAmount > 0 ? (catSum / totalAmount * 100).toStringAsFixed(1) : '0.0';
+                  return [
+                    (idx + 1).toString(),
+                    cat.replaceAll('_', ' '),
+                    items.length.toString(),
+                    'Rs. ${NumberFormat("#,##,###.00").format(catSum)}',
+                    '$pct %',
+                  ];
+                }),
+                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                headerStyle: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white),
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+                oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+                cellStyle: const pw.TextStyle(fontSize: 7.5),
+                cellAlignments: {
+                  0: pw.Alignment.center,
+                  1: pw.Alignment.centerLeft,
+                  2: pw.Alignment.center,
+                  3: pw.Alignment.centerRight,
+                  4: pw.Alignment.centerRight,
+                },
+                headerAlignments: {
+                  0: pw.Alignment.center,
+                  1: pw.Alignment.centerLeft,
+                  2: pw.Alignment.center,
+                  3: pw.Alignment.centerRight,
+                  4: pw.Alignment.centerRight,
+                },
+              ),
+              pw.SizedBox(height: 14),
+
+              // Detailed items grouped by each category
+              ...sortedCategories.map((cat) {
+                final catItems = grouped[cat]!;
+                final catSum = catItems.fold(0.0, (s, e) => s + e.amount);
+                return pw.Container(
+                  margin: const pw.EdgeInsets.only(bottom: 12),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        decoration: const pw.BoxDecoration(
+                          color: PdfColors.blueGrey700,
+                          borderRadius: pw.BorderRadius.vertical(top: pw.Radius.circular(3)),
+                        ),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text(
+                              cat.replaceAll('_', ' '),
+                              style: pw.TextStyle(font: fontBold, fontSize: 8.5, color: PdfColors.white),
+                            ),
+                            pw.Text(
+                              '${catItems.length} Records  |  Subtotal: Rs. ${NumberFormat("#,##,###.00").format(catSum)}',
+                              style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.amber200),
+                            ),
+                          ],
+                        ),
+                      ),
+                      pw.TableHelper.fromTextArray(
+                        headers: ['#', 'Date', 'Expense Title / Item', 'Payment Mode', 'Notes / Paid To', 'Amount (Rs.)'],
+                        data: List<List<dynamic>>.generate(catItems.length, (idx) {
+                          final e = catItems[idx];
+                          return [
+                            (idx + 1).toString(),
+                            DateFormat('dd-MM-yyyy').format(e.date),
+                            e.title,
+                            e.paymentMode,
+                            e.notes.isNotEmpty ? e.notes : (e.paidBy.isNotEmpty ? 'To: ${e.paidBy}' : '-'),
+                            NumberFormat('#,##,###.00').format(e.amount),
+                          ];
+                        }),
+                        border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                        headerStyle: pw.TextStyle(font: fontBold, fontSize: 7.5, color: PdfColors.blueGrey900),
+                        headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                        oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+                        cellStyle: const pw.TextStyle(fontSize: 7),
+                        cellAlignments: {
+                          0: pw.Alignment.center,
+                          1: pw.Alignment.center,
+                          2: pw.Alignment.centerLeft,
+                          3: pw.Alignment.center,
+                          4: pw.Alignment.centerLeft,
+                          5: pw.Alignment.centerRight,
+                        },
+                        headerAlignments: {
+                          0: pw.Alignment.center,
+                          1: pw.Alignment.center,
+                          2: pw.Alignment.centerLeft,
+                          3: pw.Alignment.center,
+                          4: pw.Alignment.centerLeft,
+                          5: pw.Alignment.centerRight,
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ] else ...[
+              // Detailed chronological item register
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey200,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text(
+                  'DETAILED CHRONOLOGICAL EXPENSES REGISTER',
+                  style: pw.TextStyle(font: fontBold, fontSize: 8.5, color: PdfColors.blueGrey900),
+                ),
+              ),
+              pw.SizedBox(height: 6),
+              pw.TableHelper.fromTextArray(
+                headers: ['#', 'Date', 'Expense Title', 'Category', 'Mode', 'Notes / Paid To', 'Amount (Rs.)'],
+                data: List<List<dynamic>>.generate(expenses.length, (idx) {
+                  final e = expenses[idx];
+                  return [
+                    (idx + 1).toString(),
+                    DateFormat('dd-MM-yyyy').format(e.date),
+                    e.title,
+                    e.category.replaceAll('_', ' '),
+                    e.paymentMode,
+                    e.notes.isNotEmpty ? e.notes : (e.paidBy.isNotEmpty ? 'To: ${e.paidBy}' : '-'),
+                    NumberFormat('#,##,###.00').format(e.amount),
+                  ];
+                }),
+                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                headerStyle: pw.TextStyle(font: fontBold, fontSize: 7.5, color: PdfColors.white),
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+                rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
+                oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+                cellStyle: const pw.TextStyle(fontSize: 7),
+                cellAlignments: {
+                  0: pw.Alignment.center,
+                  1: pw.Alignment.center,
+                  2: pw.Alignment.centerLeft,
+                  3: pw.Alignment.centerLeft,
+                  4: pw.Alignment.center,
+                  5: pw.Alignment.centerLeft,
+                  6: pw.Alignment.centerRight,
+                },
+                headerAlignments: {
+                  0: pw.Alignment.center,
+                  1: pw.Alignment.center,
+                  2: pw.Alignment.centerLeft,
+                  3: pw.Alignment.centerLeft,
+                  4: pw.Alignment.center,
+                  5: pw.Alignment.centerLeft,
+                  6: pw.Alignment.centerRight,
+                },
+              ),
+            ],
+
+            pw.SizedBox(height: 12),
+
+            // Grand Total and Amount in Words Box
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey300),
+                borderRadius: pw.BorderRadius.circular(4),
+                color: PdfColors.grey100,
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        'CUMULATIVE EXPENSES GRAND TOTAL:',
+                        style: pw.TextStyle(font: fontBold, fontSize: 9.5, color: PdfColors.blueGrey900),
+                      ),
+                      pw.Text(
+                        'Rs. ${NumberFormat("#,##,###.00").format(totalAmount)}',
+                        style: pw.TextStyle(font: fontBold, fontSize: 12, color: PdfColors.red900),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Row(
+                    children: [
+                      pw.Text('Amount in Words: ', style: pw.TextStyle(font: fontBold, fontSize: 8)),
+                      pw.Expanded(
+                        child: pw.Text(
+                          amountInWords(totalAmount),
+                          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            pw.SizedBox(height: 22),
+
+            // Signatures Section
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Container(width: 130, height: 1, color: PdfColors.grey400),
+                    pw.SizedBox(height: 4),
+                    pw.Text('Prepared By (Operator)', style: pw.TextStyle(font: fontBold, fontSize: 7.5)),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Container(width: 130, height: 1, color: PdfColors.grey400),
+                    pw.SizedBox(height: 4),
+                    pw.Text('Verified By (Supervisor)', style: pw.TextStyle(font: fontBold, fontSize: 7.5)),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Container(width: 130, height: 1, color: PdfColors.grey400),
+                    pw.SizedBox(height: 4),
+                    pw.Text('For, $orgName', style: pw.TextStyle(font: fontBold, fontSize: 7.5)),
+                    pw.Text('(Authorised Signatory)', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600)),
+                  ],
+                ),
+              ],
+            ),
+          ];
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  /// Exports Expense Report directly to disk and opens in Preview
+  static Future<String?> exportAndOpenExpenseReportPdf({
+    required List<ExpenseModel> expenses,
+    required bool isGroupedByCategory,
+    String? companyName,
+    String? periodTitle,
+    String? searchKeyword,
+    Set<String>? activeCategories,
+  }) async {
+    final pdfBytes = await generateExpenseReportPdf(
+      expenses: expenses,
+      isGroupedByCategory: isGroupedByCategory,
+      companyName: companyName,
+      periodTitle: periodTitle,
+      searchKeyword: searchKeyword,
+      activeCategories: activeCategories,
+    );
+    final typeName = isGroupedByCategory ? 'Grouped' : 'Itemized';
+    final filename = 'Expense_Report_${typeName}_${DateFormat("yyyyMMdd_HHmmss").format(DateTime.now())}.pdf';
+    return await _fallbackSaveAndOpenPdf(
+      pdfBytes: pdfBytes,
+      filename: filename,
+    );
+  }
+
+  /// Opens native print and PDF preview/save dialog for Expense Report
+  static Future<void> printOrPreviewExpenseReportPdf({
+    required List<ExpenseModel> expenses,
+    required bool isGroupedByCategory,
+    String? companyName,
+    String? periodTitle,
+    String? searchKeyword,
+    Set<String>? activeCategories,
+  }) async {
+    final pdfBytes = await generateExpenseReportPdf(
+      expenses: expenses,
+      isGroupedByCategory: isGroupedByCategory,
+      companyName: companyName,
+      periodTitle: periodTitle,
+      searchKeyword: searchKeyword,
+      activeCategories: activeCategories,
+    );
+    final typeName = isGroupedByCategory ? 'Grouped' : 'Itemized';
+    if (Platform.isMacOS) {
+      await _fallbackSaveAndOpenPdf(
+        pdfBytes: pdfBytes,
+        filename: 'Expense_Report_${typeName}_${DateFormat("yyyyMMdd_HHmmss").format(DateTime.now())}.pdf',
+      );
+      return;
+    }
+    try {
+      await Printing.layoutPdf(
+        name: 'Expense_Report_$typeName',
+        onLayout: (PdfPageFormat format) async => pdfBytes,
+      );
+    } catch (_) {
+      await _fallbackSaveAndOpenPdf(
+        pdfBytes: pdfBytes,
+        filename: 'Expense_Report_${typeName}_${DateFormat("yyyyMMdd_HHmmss").format(DateTime.now())}.pdf',
       );
     }
   }

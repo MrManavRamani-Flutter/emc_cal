@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
 import '../../core/localization/app_strings.dart';
 import '../../core/utils/safe_range_utils.dart';
+import '../../data/pdf_exporter.dart';
 import '../../models/expense_model.dart';
 import '../../providers/production_provider.dart';
 import 'manage_expense_categories_dialog.dart';
@@ -18,7 +19,8 @@ class ExpensesScreen extends StatefulWidget {
 
 class _ExpensesScreenState extends State<ExpensesScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _selectedCategory = 'ALL';
+  Set<String>? _selectedCategories;
+  bool _isCategoryPanelExpanded = true;
   String _selectedPeriod = 'ALL'; // 'TODAY', 'MONTH', 'ALL'
   
   // Table sorting
@@ -459,6 +461,317 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     }
   }
 
+  Set<String> _getActiveCategories(List<String> allCategories) {
+    if (_selectedCategories == null) {
+      return allCategories.toSet();
+    }
+    return _selectedCategories!;
+  }
+
+  void _toggleCategory(String category, List<String> allCategories) {
+    setState(() {
+      final current = Set<String>.from(_getActiveCategories(allCategories));
+      if (current.contains(category)) {
+        current.remove(category);
+      } else {
+        current.add(category);
+      }
+      _selectedCategories = current;
+      _currentPage = 1;
+    });
+  }
+
+  void _selectAllCategories(List<String> allCategories) {
+    setState(() {
+      _selectedCategories = allCategories.toSet();
+      _currentPage = 1;
+    });
+  }
+
+  void _deselectAllCategories() {
+    setState(() {
+      _selectedCategories = <String>{};
+      _currentPage = 1;
+    });
+  }
+
+  void _clearAllFilters(List<String> allCategories) {
+    setState(() {
+      _selectedCategories = allCategories.toSet();
+      _selectedPeriod = 'ALL';
+      _searchController.clear();
+      _currentPage = 1;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All filters cleared! Showing all records.'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Color(0xFF6366F1),
+        ),
+      );
+    }
+  }
+
+  void _showPdfExportDialog(
+    BuildContext context,
+    List<ExpenseModel> currentFiltered,
+    ProductionProvider provider,
+    String lang,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final totalAmount = currentFiltered.fold(0.0, (s, e) => s + e.amount);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? AppTheme.darkCardBg : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFEF4444), size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppStrings.t(lang,
+                          en: 'Export Expenses PDF Report',
+                          gu: 'ખર્ચ પીડીએફ રિપોર્ટ એક્સપોર્ટ',
+                          hi: 'खर्च पीडीएफ रिपोर्ट निर्यात'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${currentFiltered.length} records selected  •  Total: ₹${NumberFormat("#,##,###.00").format(totalAmount)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppStrings.t(lang,
+                      en: 'Choose the format for your expense report:',
+                      gu: 'તમારા ખર્ચ રિપોર્ટ માટે ફોર્મેટ પસંદ કરો:',
+                      hi: 'अपनी खर्च रिपोर्ट के लिए प्रारूप चुनें:'),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppTheme.darkTextSecondary : const Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Option 1: Group by Category
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _exportExpensePdf(isGrouped: true, filtered: currentFiltered, provider: provider);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withValues(alpha: isDark ? 0.2 : 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF6366F1), width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.pie_chart_rounded, color: Colors.white, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                AppStrings.t(lang,
+                                    en: '1. Group By Category Report',
+                                    gu: '૧. કેટેગરી મુજબ ગ્રૂપ રિપોર્ટ (Grouped)',
+                                    hi: '१. श्रेणी अनुसार समूह रिपोर्ट (Grouped)'),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white : const Color(0xFF1E1B4B),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                AppStrings.t(lang,
+                                    en: 'Summary breakdown by category with percentage share and category subtotals',
+                                    gu: 'દરેક કેટેગરીના અલગ ટેબલ, પેટા-સરવાળા અને ટકાવારી સાથે સંપૂર્ણ વિશ્લેષણ',
+                                    hi: 'प्रत्येक श्रेणी के अलग टेबल, उप-योग और प्रतिशत के साथ पूरा विवरण'),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark ? AppTheme.darkTextMuted : const Color(0xFF4B5563),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF6366F1)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Option 2: Detailed Itemized Statement
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _exportExpensePdf(isGrouped: false, filtered: currentFiltered, provider: provider);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF059669).withValues(alpha: isDark ? 0.2 : 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF059669), width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF059669),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.table_rows_rounded, color: Colors.white, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                AppStrings.t(lang,
+                                    en: '2. Detailed Itemized Register',
+                                    gu: '૨. વિગતોવાર અલગ રજિસ્ટર (Separate)',
+                                    hi: '२. विस्तृत अलग रजिस्टर (Separate)'),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white : const Color(0xFF064E3B),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                AppStrings.t(lang,
+                                    en: 'Chronological list with Date, Title, Category, Mode, Paid To, Notes & Amount',
+                                    gu: 'તારીખવાર એક પછી એક તમામ ખર્ચાની લિસ્ટ, ચૂકવણી મોડ અને નોંધ સાથે',
+                                    hi: 'तारीख अनुसार एक के बाद एक सभी खर्चों की सूची, भुगतान मोड और विवरण के साथ'),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark ? AppTheme.darkTextMuted : const Color(0xFF4B5563),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF059669)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(AppStrings.t(lang, en: 'Cancel', gu: 'રદ કરો', hi: 'रद्द करें')),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _exportExpensePdf({
+    required bool isGrouped,
+    required List<ExpenseModel> filtered,
+    required ProductionProvider provider,
+  }) async {
+    if (filtered.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No expenses to export! Please select at least one category.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      String periodText = 'All Records';
+      if (_selectedPeriod == 'TODAY') {
+        periodText = 'Today (${DateFormat("dd-MM-yyyy").format(DateTime.now())})';
+      } else if (_selectedPeriod == 'MONTH') {
+        periodText = 'Month of ${DateFormat("MMMM yyyy").format(DateTime.now())}';
+      }
+
+      final savedPath = await PdfExporter.exportAndOpenExpenseReportPdf(
+        expenses: filtered,
+        isGroupedByCategory: isGrouped,
+        companyName: provider.settings.companyName.isEmpty ? 'OM MAVTAR GROUP' : provider.settings.companyName,
+        periodTitle: periodText,
+        searchKeyword: _searchController.text.trim().isNotEmpty ? _searchController.text.trim() : null,
+      );
+
+      if (mounted && savedPath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isGrouped
+                  ? 'Grouped Category PDF Report opened in Preview! Saved: $savedPath'
+                  : 'Itemized Expense Register PDF opened in Preview! Saved: $savedPath',
+            ),
+            backgroundColor: const Color(0xFF059669),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating PDF report: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProductionProvider>();
@@ -479,10 +792,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     final totalExpenses = allExpenses.fold<double>(0.0, (s, e) => s + e.amount);
 
+    final allCats = provider.expenseCategories;
+    final activeCategories = _getActiveCategories(allCats);
+
     // Filter logic
     final searchQuery = _searchController.text.trim().toLowerCase();
     List<ExpenseModel> filtered = allExpenses.where((e) {
-      if (_selectedCategory != 'ALL' && e.category != _selectedCategory) return false;
+      if (!activeCategories.contains(e.category.toUpperCase().trim())) return false;
       if (_selectedPeriod == 'TODAY') {
         if (e.date.year != now.year || e.date.month != now.month || e.date.day != now.day) return false;
       } else if (_selectedPeriod == 'MONTH') {
@@ -600,6 +916,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: () => _showPdfExportDialog(context, filtered, provider, lang),
+                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: Color(0xFFDC2626)),
+                  label: Text(
+                    AppStrings.t(lang, en: 'PDF Report', gu: 'પીડીએફ રિપોર્ટ', hi: 'पीडीएफ रिपोर्ट'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    side: BorderSide(color: isDark ? const Color(0xFFDC2626).withValues(alpha: 0.5) : const Color(0xFFFECACA)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    backgroundColor: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : const Color(0xFFFEF2F2),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 ElevatedButton.icon(
                   onPressed: () => _openAddEditExpenseDialog(),
                   icon: const Icon(Icons.add_rounded, size: 18),
@@ -690,7 +1021,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
                   // Filter Bar & Search
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark ? AppTheme.darkCardBg : Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -699,7 +1030,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Search and Period row
+                        // Search, Period, Clear Filter, PDF Export row
                         Row(
                           children: [
                             Expanded(
@@ -748,40 +1079,212 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                 });
                               },
                             ),
+                            const SizedBox(width: 10),
+                            // Clear Filters Button
+                            OutlinedButton.icon(
+                              onPressed: () => _clearAllFilters(allCats),
+                              icon: const Icon(Icons.filter_alt_off_rounded, size: 16, color: Color(0xFF64748B)),
+                              label: Text(
+                                AppStrings.t(lang, en: 'Clear Filters', gu: 'ફિલ્ટર સાફ કરો', hi: 'फ़िल्टर साफ़ करें'),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? AppTheme.darkTextSecondary : const Color(0xFF475569),
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                                side: BorderSide(color: isDark ? AppTheme.darkBorder : const Color(0xFFCBD5E1)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // PDF Export Button
+                            ElevatedButton.icon(
+                              onPressed: () => _showPdfExportDialog(context, filtered, provider, lang),
+                              icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                              label: Text(
+                                AppStrings.t(lang, en: 'PDF Report', gu: 'પીડીએફ રિપોર્ટ', hi: 'पीडीएफ रिपोर्ट'),
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFDC2626),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
                           ],
                         ),
+
+                        const SizedBox(height: 14),
+                        const Divider(height: 1),
                         const SizedBox(height: 12),
-                        // Category Chips
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              FilterChip(
-                                label: const Text('ALL CATEGORIES'),
-                                selected: _selectedCategory == 'ALL',
-                                onSelected: (_) => setState(() {
-                                  _selectedCategory = 'ALL';
-                                  _currentPage = 1;
-                                }),
-                              ),
-                              const SizedBox(width: 8),
-                              ...provider.expenseCategories.map((cat) {
-                                final isSelected = _selectedCategory == cat;
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: FilterChip(
-                                    label: Text(ExpenseCategories.getLabel(cat, lang)),
-                                    selected: isSelected,
-                                    onSelected: (_) => setState(() {
-                                      _selectedCategory = cat;
-                                      _currentPage = 1;
-                                    }),
+
+                        // Category Checkbox Controls Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.checklist_rounded, size: 18, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  AppStrings.t(lang, en: 'Filter by Categories', gu: 'કેટેગરી ચેકબોક્સ ફિલ્ટર', hi: 'श्रेणी चेकबॉक्स फ़िल्टर'),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF1E293B),
                                   ),
-                                );
-                              }),
-                            ],
-                          ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: activeCategories.length == allCats.length
+                                        ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))
+                                        : const Color(0xFF6366F1).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: activeCategories.length == allCats.length
+                                          ? (isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0))
+                                          : const Color(0xFF6366F1),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '${activeCategories.length}/${allCats.length} Selected',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: activeCategories.length == allCats.length
+                                          ? (isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B))
+                                          : const Color(0xFF6366F1),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                TextButton.icon(
+                                  onPressed: () => _selectAllCategories(allCats),
+                                  icon: const Icon(Icons.done_all_rounded, size: 16),
+                                  label: Text(
+                                    AppStrings.t(lang, en: 'Select All', gu: 'બધા પસંદ કરો', hi: 'सभी चुनें'),
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFF10B981),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                TextButton.icon(
+                                  onPressed: _deselectAllCategories,
+                                  icon: const Icon(Icons.remove_done_rounded, size: 16),
+                                  label: Text(
+                                    AppStrings.t(lang, en: 'Deselect All', gu: 'બધા દૂર કરો', hi: 'सभी हटाएं'),
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFFEF4444),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  tooltip: _isCategoryPanelExpanded ? 'Collapse' : 'Expand',
+                                  icon: Icon(
+                                    _isCategoryPanelExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => setState(() => _isCategoryPanelExpanded = !_isCategoryPanelExpanded),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
+
+                        // Checkbox Grid Wrap
+                        if (_isCategoryPanelExpanded) ...[
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: allCats.map((cat) {
+                              final isChecked = activeCategories.contains(cat);
+                              final count = allExpenses.where((e) => e.category.toUpperCase().trim() == cat).length;
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: () => _toggleCategory(cat, allCats),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.only(left: 4, right: 10, top: 4, bottom: 4),
+                                  decoration: BoxDecoration(
+                                    color: isChecked
+                                        ? (isDark ? const Color(0xFF312E81).withValues(alpha: 0.35) : const Color(0xFFEEF2FF))
+                                        : (isDark ? AppTheme.darkCardBg : const Color(0xFFF8FAFC)),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isChecked
+                                          ? const Color(0xFF6366F1)
+                                          : (isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0)),
+                                      width: isChecked ? 1.4 : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: Checkbox(
+                                          value: isChecked,
+                                          activeColor: const Color(0xFF6366F1),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                          onChanged: (_) => _toggleCategory(cat, allCats),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        ExpenseCategories.getLabel(cat, lang),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: isChecked ? FontWeight.bold : FontWeight.w500,
+                                          color: isChecked
+                                              ? (isDark ? Colors.white : const Color(0xFF1E1B4B))
+                                              : (isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B)),
+                                        ),
+                                      ),
+                                      if (count > 0) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: isChecked
+                                                ? const Color(0xFF6366F1).withValues(alpha: 0.2)
+                                                : (isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Text(
+                                            '$count',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: isChecked
+                                                  ? const Color(0xFF6366F1)
+                                                  : (isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B)),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -829,12 +1332,53 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             child: Center(
                               child: Column(
                                 children: [
-                                  Icon(Icons.inbox_rounded, size: 40, color: isDark ? AppTheme.darkTextMuted : const Color(0xFF94A3B8)),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'No expense records found matching filters',
-                                    style: TextStyle(color: isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B)),
+                                  Icon(
+                                    activeCategories.isEmpty ? Icons.checklist_rtl_rounded : Icons.inbox_rounded,
+                                    size: 44,
+                                    color: isDark ? AppTheme.darkTextMuted : const Color(0xFF94A3B8),
                                   ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    activeCategories.isEmpty
+                                        ? AppStrings.t(lang,
+                                            en: 'No categories selected. Check categories above or click "Select All" to view expenses.',
+                                            gu: 'કોઈ કેટેગરી પસંદ નથી. ખર્ચ જોવા માટે ઉપરથી કેટેગરી પસંદ કરો અથવા "બધા પસંદ કરો" પર ક્લિક કરો.',
+                                            hi: 'कोई श्रेणी नहीं चुनी गई। खर्च देखने के लिए ऊपर से श्रेणी चुनें या "सभी चुनें" पर क्लिक करें।')
+                                        : AppStrings.t(lang,
+                                            en: 'No expense records found matching current filters',
+                                            gu: 'પસંદ કરેલ ફિલ્ટર મુજબ કોઈ ખર્ચ મળ્યો નથી',
+                                            hi: 'वर्तमान फ़िल्टर के अनुसार कोई खर्च नहीं मिला'),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  if (activeCategories.isEmpty) ...[
+                                    const SizedBox(height: 14),
+                                    ElevatedButton.icon(
+                                      onPressed: () => _selectAllCategories(allCats),
+                                      icon: const Icon(Icons.done_all_rounded, size: 16),
+                                      label: Text(AppStrings.t(lang,
+                                          en: 'Select All Categories',
+                                          gu: 'બધી કેટેગરી પસંદ કરો',
+                                          hi: 'सभी श्रेणियां चुनें')),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF6366F1),
+                                        foregroundColor: Colors.white,
+                                      ),
+                                    ),
+                                  ] else ...[
+                                    const SizedBox(height: 14),
+                                    OutlinedButton.icon(
+                                      onPressed: () => _clearAllFilters(allCats),
+                                      icon: const Icon(Icons.filter_alt_off_rounded, size: 16),
+                                      label: Text(AppStrings.t(lang,
+                                          en: 'Clear All Filters',
+                                          gu: 'બધા ફિલ્ટર સાફ કરો',
+                                          hi: 'सभी फ़िल्टर साफ़ करें')),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),

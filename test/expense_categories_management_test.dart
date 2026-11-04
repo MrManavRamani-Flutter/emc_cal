@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:emb_cal/data/database_helper.dart';
+import 'package:emb_cal/data/pdf_exporter.dart';
 import 'package:emb_cal/models/expense_model.dart';
 import 'package:emb_cal/models/settings_model.dart';
 import 'package:emb_cal/providers/production_provider.dart';
@@ -99,6 +100,61 @@ void main() {
       await provider.resetExpenseCategoriesToDefault();
       expect(provider.expenseCategories.contains('SPECIAL_GREASE'), isFalse);
       expect(provider.expenseCategories.length, SettingsModel.defaultExpenseCategories.length);
+    });
+
+    test('PdfExporter generates non-empty PDF bytes for Grouped and Itemized Expense reports', () async {
+      final sampleExpenses = [
+        ExpenseModel(
+          id: 1,
+          title: 'Torrent Power Electricity Bill',
+          amount: 14500.0,
+          category: 'LIGHT_BILL',
+          paymentMode: 'Bank / UPI',
+          paidTo: 'Torrent Power',
+          notes: 'Factory meter 1024 units',
+          date: DateTime(2026, 11, 1),
+        ),
+        ExpenseModel(
+          id: 2,
+          title: 'Tempo Freight for Sequence Delivery',
+          amount: 650.0,
+          category: 'TRANSPORT_TEMPO',
+          paymentMode: 'Cash',
+          paidTo: 'Ramesh Tempo',
+          notes: 'Challan #4043',
+          date: DateTime(2026, 11, 2),
+        ),
+        ExpenseModel(
+          id: 3,
+          title: 'Machine Lubrication Oil Can',
+          amount: 1200.0,
+          category: 'MACHINE_OIL',
+          paymentMode: 'Cash',
+          paidTo: 'Shreeji Spares',
+          notes: 'Servo 20L Oil',
+          date: DateTime(2026, 11, 3),
+        ),
+      ];
+
+      // 1. Grouped by Category Report
+      final groupedPdf = await PdfExporter.generateExpenseReportPdf(
+        expenses: sampleExpenses,
+        isGroupedByCategory: true,
+        companyName: 'OM MAVTAR GROUP',
+        periodTitle: 'November 2026',
+      );
+      expect(groupedPdf, isNotEmpty);
+      expect(groupedPdf.length, greaterThan(1000));
+
+      // 2. Detailed Itemized Register Report
+      final itemizedPdf = await PdfExporter.generateExpenseReportPdf(
+        expenses: sampleExpenses,
+        isGroupedByCategory: false,
+        companyName: 'OM MAVTAR GROUP',
+        periodTitle: 'November 2026',
+      );
+      expect(itemizedPdf, isNotEmpty);
+      expect(itemizedPdf.length, greaterThan(1000));
     });
   });
 }

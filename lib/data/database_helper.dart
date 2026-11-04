@@ -2831,6 +2831,45 @@ class DatabaseHelper {
   Future<int> deleteCustomerPayment(int id) async {
     final db = await database;
     await _ensureMigration(db);
-    return await db.delete('customer_payments', where: 'id = ?', whereArgs: [id]);
+    return await db.transaction((txn) async {
+      final List<Map<String, dynamic>> maps = await txn.query(
+        'customer_payments',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (maps.isNotEmpty) {
+        final paymentMap = maps.first;
+        final billId = paymentMap['bill_id'] as int?;
+        final amount = (paymentMap['amount'] as num?)?.toDouble() ?? 0.0;
+
+        if (billId != null) {
+          final List<Map<String, dynamic>> bills = await txn.query(
+            'customer_bills',
+            where: 'id = ?',
+            whereArgs: [billId],
+          );
+          if (bills.isNotEmpty) {
+            final billMap = bills.first;
+            final totalAmount = (billMap['total_amount'] as num?)?.toDouble() ?? 0.0;
+            final currentPaid = (billMap['paid_amount'] as num?)?.toDouble() ?? 0.0;
+            final newPaid = (currentPaid - amount).clamp(0.0, double.infinity);
+            final newStatus = newPaid >= totalAmount && totalAmount > 0
+                ? 'Paid'
+                : (newPaid > 0 ? 'Partial' : 'Unpaid');
+
+            await txn.update(
+              'customer_bills',
+              {
+                'paid_amount': newPaid,
+                'payment_status': newStatus,
+              },
+              where: 'id = ?',
+              whereArgs: [billId],
+            );
+          }
+        }
+      }
+      return await txn.delete('customer_payments', where: 'id = ?', whereArgs: [id]);
+    });
   }
 }
