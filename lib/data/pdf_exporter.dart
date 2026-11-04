@@ -520,10 +520,36 @@ class PdfExporter {
       city: city,
     );
 
-    await Printing.layoutPdf(
-      name: 'Supplier_Statement_${supplierName.replaceAll(" ", "_")}',
-      onLayout: (PdfPageFormat format) async => pdfBytes,
-    );
+    try {
+      await Printing.layoutPdf(
+        name: 'Supplier_Statement_${supplierName.replaceAll(" ", "_")}',
+        onLayout: (PdfPageFormat format) async => pdfBytes,
+      );
+    } catch (_) {
+      await _fallbackSaveAndOpenPdf(
+        pdfBytes: pdfBytes,
+        filename: 'Supplier_Statement_${supplierName.replaceAll(" ", "_")}_${DateFormat("yyyyMMdd_HHmmss").format(DateTime.now())}.pdf',
+      );
+    }
+  }
+
+  /// Fallback: saves PDF to Documents/PDF_Statements and opens in system default viewer (Preview)
+  static Future<void> _fallbackSaveAndOpenPdf({
+    required Uint8List pdfBytes,
+    required String filename,
+  }) async {
+    try {
+      final docs = await getApplicationDocumentsDirectory();
+      final pdfDir = Directory('${docs.path}/EmbroideryProductionCalculator/PDF_Statements');
+      if (!await pdfDir.exists()) {
+        await pdfDir.create(recursive: true);
+      }
+      final file = File('${pdfDir.path}/$filename');
+      await file.writeAsBytes(pdfBytes);
+      if (Platform.isMacOS) {
+        await Process.run('open', [file.path]);
+      }
+    } catch (_) {}
   }
 
   /// Direct Save to disk with FilePicker
@@ -579,9 +605,16 @@ class PdfExporter {
       supplierPhone: supplierPhone,
       supplierCity: supplierCity,
     );
-    await Printing.layoutPdf(
-      name: 'Challan_Bill_${challan.challanNo}',
-      onLayout: (PdfPageFormat format) async => pdfBytes,
-    );
+    try {
+      await Printing.layoutPdf(
+        name: 'Challan_Bill_${challan.challanNo}',
+        onLayout: (PdfPageFormat format) async => pdfBytes,
+      );
+    } catch (_) {
+      await _fallbackSaveAndOpenPdf(
+        pdfBytes: pdfBytes,
+        filename: 'Challan_Bill_${challan.challanNo}_${DateFormat("yyyyMMdd_HHmmss").format(DateTime.now())}.pdf',
+      );
+    }
   }
 }

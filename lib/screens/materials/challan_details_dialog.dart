@@ -132,12 +132,20 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
     } catch (_) {}
 
     final summary = challan.copyWith(items: liveItems);
-    await PdfExporter.printOrPreviewChallanInvoice(
-      challan: summary,
-      companyName: 'OM MAVTAR GROUP',
-      supplierPhone: supp?.phone,
-      supplierCity: supp?.city,
-    );
+    try {
+      await PdfExporter.printOrPreviewChallanInvoice(
+        challan: summary,
+        companyName: 'OM MAVTAR GROUP',
+        supplierPhone: supp?.phone,
+        supplierCity: supp?.city,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating PDF bill: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _showChallanPaymentStatusDialog(BuildContext context, ChallanSummary challan, List<MaterialItem> liveItems) {
