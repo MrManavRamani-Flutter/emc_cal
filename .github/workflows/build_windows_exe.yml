@@ -3,13 +3,23 @@ name: Build Windows Single Installer EXE
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish as a GitHub Release?'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
-    name: Build OM MAVTAR Windows Setup EXE
+    name: Build OM MAVTAR Windows Setup EXE & Portable ZIP
     runs-on: windows-latest
 
     steps:
@@ -28,48 +38,116 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Verify Code Quality
+      - name: Verify Code Quality (Flutter Analyze)
         run: flutter analyze
 
-      - name: Run Test Suite
+      - name: Run Automated Test Suite
         run: flutter test
 
       - name: Build Windows Release
         run: flutter build windows --release
 
-      - name: Verify Release Binary Exists
+      - name: Verify Release Binary & Ensure SQLite DLL
+        shell: powershell
         run: |
-          if (Test-Path "build\windows\x64\runner\Release\emb_cal.exe") {
-            Write-Host "emb_cal.exe successfully compiled!" -ForegroundColor Green
-          } else {
+          $releaseDir = "build\windows\x64\runner\Release"
+          if (!(Test-Path "$releaseDir\emb_cal.exe")) {
             Write-Error "emb_cal.exe was not found in release output."
             exit 1
           }
-        shell: powershell
+          Write-Host "emb_cal.exe compiled successfully!" -ForegroundColor Green
+
+          # Copy Run helper batch file into release folder
+          Copy-Item "windows\Run_OM_MAVTAR_Calculator.bat" "$releaseDir\Run_OM_MAVTAR_Calculator.bat" -Force
+
+          # Ensure sqlite3.dll is present for 100% offline database operation
+          if (!(Test-Path "$releaseDir\sqlite3.dll")) {
+            Write-Host "sqlite3.dll not found in Release folder. Fetching official precompiled Windows x64 SQLite3 binary..." -ForegroundColor Yellow
+            Invoke-WebRequest -Uri "https://www.sqlite.org/2024/sqlite-dll-win-x64-3450300.zip" -OutFile "sqlite.zip"
+            Expand-Archive -Path "sqlite.zip" -DestinationPath "sqlite_temp" -Force
+            Copy-Item -Path "sqlite_temp\sqlite3.dll" -Destination "$releaseDir\sqlite3.dll" -Force
+            Remove-Item -Recurse -Force "sqlite.zip", "sqlite_temp"
+            Write-Host "sqlite3.dll successfully placed into Release output!" -ForegroundColor Green
+          } else {
+            Write-Host "sqlite3.dll already present in release folder!" -ForegroundColor Green
+          }
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
-      - name: Compile Windows Single-Click Installer EXE
+      - name: Compile Windows Single-Click Setup Installer EXE
+        shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path "dist"
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "windows\installer\OM_MAVTAR_Installer.iss"
-        shell: powershell
 
-      - name: Verify Output Setup EXE
+      - name: Create Standalone Portable ZIP
+        shell: powershell
         run: |
-          if (Test-Path "dist\OM_MAVTAR_Calculator_v1.0_Setup.exe") {
-            $size = (Get-Item "dist\OM_MAVTAR_Calculator_v1.0_Setup.exe").Length / 1MB
-            Write-Host "Success! Installer size: $('{0:N2}' -f $size) MB" -ForegroundColor Green
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "dist\OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip" -Force
+          Write-Host "Portable ZIP generated at dist\OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip" -ForegroundColor Green
+
+      - name: Verify Output Files
+        shell: powershell
+        run: |
+          $setupPath = "dist\OM_MAVTAR_Calculator_v1.0_Setup.exe"
+          $zipPath = "dist\OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip"
+          if (Test-Path $setupPath) {
+            $size = (Get-Item $setupPath).Length / 1MB
+            Write-Host "SUCCESS: Windows Setup Installer: $('{0:N2}' -f $size) MB" -ForegroundColor Green
           } else {
             Write-Error "Setup.exe was not generated."
             exit 1
           }
-        shell: powershell
+
+          if (Test-Path $zipPath) {
+            $zipSize = (Get-Item $zipPath).Length / 1MB
+            Write-Host "SUCCESS: Windows Portable ZIP: $('{0:N2}' -f $zipSize) MB" -ForegroundColor Green
+          } else {
+            Write-Error "Portable ZIP was not generated."
+            exit 1
+          }
 
       - name: Upload Windows Setup EXE as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OM_MAVTAR_Calculator_v1.0_Windows_Setup
+          name: OM_MAVTAR_Calculator_v1.0_Windows_Setup_EXE
           path: dist/OM_MAVTAR_Calculator_v1.0_Setup.exe
           if-no-files-found: error
+
+      - name: Upload Windows Portable ZIP as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OM_MAVTAR_Calculator_v1.0_Windows_Portable_ZIP
+          path: dist/OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip
+          if-no-files-found: error
+
+      - name: Publish GitHub Release (On Tag or Workflow Dispatch)
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "OM MAVTAR GROUP v1.0.0 — Windows Release"
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          body: |
+            ## 🪡 OM MAVTAR GROUP — Windows Release v1.0.0
+            
+            ### 📦 Download Options:
+            1. **`OM_MAVTAR_Calculator_v1.0_Setup.exe`**: Single-click Windows Installer Setup (creates Desktop and Start Menu shortcuts).
+            2. **`OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip`**: Standalone portable version (no installation needed, unzip and run `emb_cal.exe` or `Run_OM_MAVTAR_Calculator.bat`).
+            
+            ### ✨ Included Features:
+            - **100% Offline SQLite Database**: Zero internet required, lightning fast.
+            - **Customer Directory & Jobwork Invoices**: Default unpaid billing, Edit Bill status switch, 1-click payment collection.
+            - **18 Authentic Factory Expense Categories**: Multi-category checkbox filtering, Select All, Deselect All, Clear, and PDF reporting.
+            - **Material Purchases & Authentic Single-Item Challan Slips**: Surat textile paper format.
+            - **Employee Directory, UPPERCASE Roles & Upad Advances Ledger**.
+            - **Daily Stitch Calculation**: Shift Day/Night & Batch Matrix M-01 to M-08.
+            - **Table Sorting & Pagination**: Ascending/Descending on all headers + "Show All".
+            - **1-Click JSON Backup & Clean Restore**.
+          files: |
+            dist/OM_MAVTAR_Calculator_v1.0_Setup.exe
+            dist/OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
