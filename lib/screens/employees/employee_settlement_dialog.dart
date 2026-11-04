@@ -36,7 +36,7 @@ class EmployeeSettlementDialog extends StatelessWidget {
 
     return AppDialog(
       title: AppStrings.t(lang, en: 'Salary Settlement', gu: 'પગાર ચૂકવણી હિસાબ', hi: 'वेतन निपटान'),
-      subtitle: '${employee.name} (${employee.role}) - ${AppStrings.t(lang, en: 'Monthly salary payout and advance deduction', gu: 'માસિક પગાર ચૂકવણી અને ઉપાડ કપાત', hi: 'मासिक वेतन भुगतान और अग्रिम कटौती')}',
+      subtitle: '${employee.name} (${employee.role.trim().toUpperCase()}) - ${AppStrings.t(lang, en: 'Monthly salary payout and advance deduction', gu: 'માસિક પગાર ચૂકવણી અને ઉપાડ કપાત', hi: 'मासिक वेतन भुगतान और अग्रिम कटौती')}',
       icon: Icons.price_check_rounded,
       maxWidth: 580,
       confirmLabel: AppStrings.t(lang, en: 'Confirm Settlement & Pay', gu: 'પગાર ચૂકવો અને હિસાબ કમ્પ્લીટ કરો', hi: 'वेतन भुगतान करें और निपटान पूरा करें'),
@@ -66,7 +66,7 @@ class EmployeeSettlementDialog extends StatelessWidget {
                 dateTime: DateTime.now(),
                 employeeName: employee.name,
                 employeeId: employee.id,
-                role: employee.role,
+                role: employee.role.trim().toUpperCase(),
                 phone: employee.phone,
                 monthlySalary: employee.monthlySalary,
                 currentAmount: totalUpad,

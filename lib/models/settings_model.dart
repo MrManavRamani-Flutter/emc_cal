@@ -19,14 +19,14 @@ class SettingsModel {
   final double fontScale; // 0.85 to 1.30, default 1.0
 
   static const List<String> defaultRoles = [
-    'Operator',
-    'Master',
-    'Karigar',
-    'Helper',
-    'Designer',
-    'Checker',
-    'Manager',
-    'Other',
+    'OPERATOR',
+    'MASTER',
+    'KARIGAR',
+    'HELPER',
+    'DESIGNER',
+    'CHECKER',
+    'MANAGER',
+    'OTHER',
   ];
 
   SettingsModel({
@@ -83,7 +83,9 @@ class SettingsModel {
       autoRefreshIntervalSeconds: autoRefreshIntervalSeconds ?? this.autoRefreshIntervalSeconds,
       isDarkMode: isDarkMode ?? this.isDarkMode,
       themeColorHex: themeColorHex ?? this.themeColorHex,
-      employeeRoles: employeeRoles ?? this.employeeRoles,
+      employeeRoles: employeeRoles != null
+          ? employeeRoles.map((e) => e.trim().toUpperCase()).where((e) => e.isNotEmpty).toSet().toList()
+          : this.employeeRoles,
       senderPhone: senderPhone ?? this.senderPhone,
       whatsappAutoSend: whatsappAutoSend ?? this.whatsappAutoSend,
       whatsappMessageLanguage: whatsappMessageLanguage ?? this.whatsappMessageLanguage,
@@ -132,7 +134,12 @@ class SettingsModel {
 
     List<String> parseRoles(dynamic val) {
       if (val is String && val.trim().isNotEmpty) {
-        final list = val.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        final list = val
+            .split(',')
+            .map((e) => e.trim().toUpperCase())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList();
         if (list.isNotEmpty) return list;
       }
       return SettingsModel.defaultRoles;

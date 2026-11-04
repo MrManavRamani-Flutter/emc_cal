@@ -1,8 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
 import '../../core/localization/app_strings.dart';
 import '../../providers/production_provider.dart';
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
+}
 
 class ManageRolesDialog extends StatefulWidget {
   const ManageRolesDialog({super.key});
@@ -23,10 +37,10 @@ class _ManageRolesDialogState extends State<ManageRolesDialog> {
 
   void _addRole(ProductionProvider provider) async {
     final lang = provider.settings.appLanguage;
-    final text = _newRoleController.text.trim();
+    final text = _newRoleController.text.trim().toUpperCase();
     if (text.isEmpty) return;
 
-    if (provider.employeeRoles.any((r) => r.toLowerCase() == text.toLowerCase())) {
+    if (provider.employeeRoles.any((r) => r.trim().toUpperCase() == text)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppStrings.t(lang,
@@ -56,7 +70,8 @@ class _ManageRolesDialogState extends State<ManageRolesDialog> {
 
   void _editRoleDialog(BuildContext context, String currentRole, ProductionProvider provider) {
     final lang = provider.settings.appLanguage;
-    final editController = TextEditingController(text: currentRole);
+    final currentUpper = currentRole.trim().toUpperCase();
+    final editController = TextEditingController(text: currentUpper);
     final isDark = AppTheme.isDark(context);
     final cardBg = isDark ? AppTheme.darkCardBg : Colors.white;
     final textPrimary = isDark ? AppTheme.darkTextPrimary : const Color(0xFF1E293B);
@@ -74,7 +89,7 @@ class _ManageRolesDialogState extends State<ManageRolesDialog> {
             Icon(Icons.edit_rounded, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 22),
             const SizedBox(width: 10),
             Text(
-              AppStrings.t(lang, en: 'Edit Role: $currentRole', gu: 'રોલ બદલો: $currentRole', hi: 'भूमिका बदलें: $currentRole'),
+              AppStrings.t(lang, en: 'Edit Role: $currentUpper', gu: 'રોલ બદલો: $currentUpper', hi: 'भूमिका बदलें: $currentUpper'),
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
             ),
           ],
@@ -94,6 +109,8 @@ class _ManageRolesDialogState extends State<ManageRolesDialog> {
             TextField(
               controller: editController,
               autofocus: true,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [UpperCaseTextFormatter()],
               style: TextStyle(color: textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 labelText: AppStrings.t(lang, en: 'New Role Name', gu: 'નવું નામ', hi: 'नया नाम'),
@@ -122,8 +139,20 @@ class _ManageRolesDialogState extends State<ManageRolesDialog> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
-              final newName = editController.text.trim();
-              if (newName.isNotEmpty && newName != currentRole) {
+              final newName = editController.text.trim().toUpperCase();
+              if (newName.isNotEmpty && newName != currentUpper) {
+                if (provider.employeeRoles.any((r) => r.trim().toUpperCase() == newName && r.trim().toUpperCase() != currentUpper)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppStrings.t(lang,
+                          en: 'Role "$newName" already exists!',
+                          gu: 'રોલ "$newName" પહેલેથી અસ્તિત્વમાં છે!',
+                          hi: 'भूमिका "$newName" पहले से मौजूद है!')),
+                      backgroundColor: const Color(0xFFDC2626),
+                    ),
+                  );
+                  return;
+                }
                 final messenger = ScaffoldMessenger.of(context);
                 await provider.updateEmployeeRole(currentRole, newName);
                 if (ctx.mounted) Navigator.of(ctx).pop();
@@ -131,9 +160,9 @@ class _ManageRolesDialogState extends State<ManageRolesDialog> {
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(AppStrings.t(lang,
-                          en: 'Role "$currentRole" renamed to "$newName"!',
-                          gu: 'રોલ "$currentRole" બદલીને "$newName" કરવામાં આવ્યો!',
-                          hi: 'भूमिका "$currentRole" बदलकर "$newName" की गई!')),
+                          en: 'Role "$currentUpper" renamed to "$newName"!',
+                          gu: 'રોલ "$currentUpper" બદલીને "$newName" કરવામાં આવ્યો!',
+                          hi: 'भूमिका "$currentUpper" बदलकर "$newName" की गई!')),
                       backgroundColor: const Color(0xFF059669),
                     ),
                   );
@@ -149,7 +178,8 @@ class _ManageRolesDialogState extends State<ManageRolesDialog> {
 
   void _deleteRole(String role, ProductionProvider provider) async {
     final lang = provider.settings.appLanguage;
-    final assignedCount = provider.employees.where((e) => e.role == role).length;
+    final roleUpper = role.trim().toUpperCase();
+    final assignedCount = provider.employees.where((e) => e.role.trim().toUpperCase() == roleUpper).length;
     final isDark = AppTheme.isDark(context);
     final cardBg = isDark ? AppTheme.darkCardBg : Colors.white;
     final textPrimary = isDark ? AppTheme.darkTextPrimary : const Color(0xFF1E293B);
@@ -279,6 +309,8 @@ class _ManageRolesDialogState extends State<ManageRolesDialog> {
                     Expanded(
                       child: TextField(
                         controller: _newRoleController,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [UpperCaseTextFormatter()],
                         onSubmitted: (_) => _addRole(provider),
                         style: TextStyle(
                           color: textPrimary,
@@ -342,8 +374,8 @@ class _ManageRolesDialogState extends State<ManageRolesDialog> {
                       itemCount: roles.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
-                        final role = roles[index];
-                        final employeeCount = provider.employees.where((e) => e.role == role).length;
+                        final role = roles[index].trim().toUpperCase();
+                        final employeeCount = provider.employees.where((e) => e.role.trim().toUpperCase() == role).length;
 
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

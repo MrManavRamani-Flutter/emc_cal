@@ -358,7 +358,10 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<ProductionProvider>();
     final employees = provider.filteredEmployees;
-    final allRolesList = ['All Roles', ...provider.employeeRoles];
+    final allRolesList = {
+      'ALL ROLES',
+      ...provider.employeeRoles.map((r) => r.trim().toUpperCase()),
+    }.toList();
     final lang = provider.settings.appLanguage;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -832,13 +835,14 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: allRolesList.map((role) {
-                  final isSelected = provider.selectedEmployeeRoleFilter == role;
+                  final roleUpper = role.trim().toUpperCase();
+                  final isSelected = provider.selectedEmployeeRoleFilter.trim().toUpperCase() == roleUpper;
                   return FilterChip(
                     selected: isSelected,
-                    label: Text(role),
+                    label: Text(roleUpper),
                     labelStyle: TextStyle(
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                       color: isSelected
                           ? (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5))
                           : (isDark ? AppTheme.darkTextSecondary : const Color(0xFF475569)),
@@ -851,7 +855,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                           ? (isDark ? const Color(0xFF6366F1) : const Color(0xFF4F46E5))
                           : (isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0)),
                     ),
-                    onSelected: (_) => provider.setEmployeeRoleFilter(role),
+                    onSelected: (_) => provider.setEmployeeRoleFilter(roleUpper),
                   );
                 }).toList(),
               ),
@@ -945,7 +949,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
           cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
           break;
         case 2:
-          cmp = a.role.toLowerCase().compareTo(b.role.toLowerCase());
+          cmp = a.role.trim().toUpperCase().compareTo(b.role.trim().toUpperCase());
           break;
         case 3:
           cmp = a.phone.toLowerCase().compareTo(b.phone.toLowerCase());
@@ -1036,23 +1040,27 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                     border: Border.all(color: isDark ? AppTheme.darkBorder : const Color(0xFFCBD5E1)),
                   ),
                   child: DropdownButton<String>(
-                    value: provider.selectedEmployeeRoleFilter,
+                    value: allRolesList.firstWhere(
+                      (r) => r.trim().toUpperCase() == provider.selectedEmployeeRoleFilter.trim().toUpperCase(),
+                      orElse: () => 'ALL ROLES',
+                    ),
                     dropdownColor: isDark ? AppTheme.darkCardBg : Colors.white,
                     underline: const SizedBox(),
                     items: allRolesList
                         .map((r) => DropdownMenuItem(
                               value: r,
                               child: Text(
-                                r,
+                                r.trim().toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                   color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF0F172A),
                                 ),
                               ),
                             ))
                         .toList(),
                     onChanged: (val) {
-                      if (val != null) provider.setEmployeeRoleFilter(val);
+                      if (val != null) provider.setEmployeeRoleFilter(val.trim().toUpperCase());
                     },
                   ),
                 ),
@@ -1232,7 +1240,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          emp.role,
+                          emp.role.trim().toUpperCase(),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -1912,7 +1920,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            emp.role,
+                            emp.role.trim().toUpperCase(),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,

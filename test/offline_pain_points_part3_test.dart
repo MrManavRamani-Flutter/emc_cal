@@ -30,7 +30,7 @@ void main() {
       // Verifications
       expect(receiptText.contains('OM MAVTAR GROUP'), isTrue);
       expect(receiptText.contains('VAUCHER NO: UPD-1024'), isTrue);
-      expect(receiptText.contains('Ramesh Patel (Master Operator)'), isTrue);
+      expect(receiptText.contains('Ramesh Patel (MASTER OPERATOR)'), isTrue);
       expect(receiptText.contains('Base Monthly Salary: ₹20,000.00'), isTrue);
       expect(receiptText.contains('Current Amount:     ₹5,000.00'), isTrue);
       expect(receiptText.contains('Total Advance:       ₹7,000.00'), isTrue);

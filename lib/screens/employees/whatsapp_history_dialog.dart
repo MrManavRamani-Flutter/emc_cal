@@ -384,7 +384,7 @@ class _WhatsAppHistoryDialogState extends State<WhatsAppHistoryDialog> {
                   ),
                   ...provider.employees.map((emp) => DropdownMenuItem<int?>(
                         value: emp.id,
-                        child: Text('${emp.name} (${emp.role})', style: TextStyle(fontSize: 13, color: textPrimary)),
+                        child: Text('${emp.name} (${emp.role.trim().toUpperCase()})', style: TextStyle(fontSize: 13, color: textPrimary)),
                       )),
                 ],
                 onChanged: (val) {

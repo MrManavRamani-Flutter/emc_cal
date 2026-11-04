@@ -40,7 +40,7 @@ class _AddEditEmployeeDialogState extends State<AddEditEmployeeDialog> {
           : '',
     );
 
-    _selectedRole = emp?.role ?? 'Operator';
+    _selectedRole = (emp?.role ?? 'OPERATOR').trim().toUpperCase();
     _selectedGender = emp?.gender ?? 'Male';
     _selectedDate = emp?.joiningDate ?? DateTime.now();
     _isActive = emp?.isActive ?? true;
@@ -85,7 +85,7 @@ class _AddEditEmployeeDialogState extends State<AddEditEmployeeDialog> {
     final emp = EmployeeModel(
       id: widget.employee?.id,
       name: _nameController.text.trim(),
-      role: _selectedRole,
+      role: _selectedRole.trim().toUpperCase(),
       gender: _selectedGender,
       phone: _phoneController.text.trim(),
       joiningDate: _selectedDate,
@@ -372,12 +372,16 @@ class _AddEditEmployeeDialogState extends State<AddEditEmployeeDialog> {
                                 Builder(
                                   builder: (context) {
                                     final provider = context.watch<ProductionProvider>();
-                                    final roleSet = Set<String>.from(provider.employeeRoles);
-                                    if (_selectedRole.isNotEmpty) roleSet.add(_selectedRole);
+                                    final roleSet = <String>{};
+                                    for (final r in provider.employeeRoles) {
+                                      if (r.trim().isNotEmpty) roleSet.add(r.trim().toUpperCase());
+                                    }
+                                    if (_selectedRole.isNotEmpty) roleSet.add(_selectedRole.trim().toUpperCase());
                                     final dynamicRoles = roleSet.toList();
-                                    final currentValue = dynamicRoles.contains(_selectedRole)
-                                        ? _selectedRole
-                                        : (dynamicRoles.isNotEmpty ? dynamicRoles.first : 'Operator');
+                                    final currentValue = dynamicRoles.firstWhere(
+                                      (r) => r.trim().toUpperCase() == _selectedRole.trim().toUpperCase(),
+                                      orElse: () => dynamicRoles.isNotEmpty ? dynamicRoles.first : 'OPERATOR',
+                                    );
 
                                     return DropdownButtonFormField<String>(
                                       initialValue: currentValue,
@@ -402,10 +406,10 @@ class _AddEditEmployeeDialogState extends State<AddEditEmployeeDialog> {
                                       ),
                                       items: dynamicRoles.map((r) => DropdownMenuItem(
                                         value: r,
-                                        child: Text(r, style: textStyle),
+                                        child: Text(r.trim().toUpperCase(), style: textStyle),
                                       )).toList(),
                                       onChanged: (val) {
-                                        if (val != null) setState(() => _selectedRole = val);
+                                        if (val != null) setState(() => _selectedRole = val.trim().toUpperCase());
                                       },
                                     );
                                   },

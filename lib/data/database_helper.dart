@@ -552,6 +552,12 @@ class DatabaseHelper {
         }
       }
     } catch (_) {}
+
+    // 21. Normalize employee roles and settings roles to uppercase
+    try {
+      await db.execute('UPDATE employees SET role = UPPER(TRIM(role)) WHERE role IS NOT NULL');
+      await db.execute('UPDATE settings SET employee_roles = UPPER(TRIM(employee_roles)) WHERE employee_roles IS NOT NULL');
+    } catch (_) {}
   }
 
   // --- Account Operations ---

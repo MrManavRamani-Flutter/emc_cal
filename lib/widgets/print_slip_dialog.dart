@@ -77,7 +77,7 @@ DATE & TIME: $dateStr
 TITLE: ${d.title}
 ----------------------------------------
 WORKER DETAILS:
-Name: ${d.employeeName} (${d.role})
+Name: ${d.employeeName} (${d.role.trim().toUpperCase()})
 Employee ID: #${d.employeeId ?? 100}
 Phone: ${d.phone.isNotEmpty ? d.phone : 'N/A'}
 ----------------------------------------
@@ -187,7 +187,7 @@ Worker Sign / Thumb        Authorized Manager
     <div class="row"><span>Date & Time:</span><span>$dateStr</span></div>
     <div class="divider"></div>
     <div class="row"><span>Worker:</span><span class="bold">${d.employeeName}</span></div>
-    <div class="row"><span>Role:</span><span>${d.role}</span></div>
+    <div class="row"><span>Role:</span><span>${d.role.trim().toUpperCase()}</span></div>
     <div class="row"><span>Employee ID:</span><span>#${d.employeeId ?? 100}</span></div>
     ${d.phone.isNotEmpty ? '<div class="row"><span>Phone:</span><span>${d.phone}</span></div>' : ''}
     <div class="divider"></div>
@@ -397,7 +397,7 @@ Worker Sign / Thumb        Authorized Manager
                       _slipRow(AppStrings.t(lang, en: 'Voucher No:', gu: 'વાઉચર નંબર:', hi: 'वाउचर नंबर:'), data.voucherNo, textPrimary, textMuted, boldVal: true),
                       _slipRow(AppStrings.t(lang, en: 'Date & Time:', gu: 'તારીખ & સમય:', hi: 'दिनांक और समय:'), dateStr, textPrimary, textMuted),
                       _slipRow(AppStrings.t(lang, en: 'Employee:', gu: 'કર્મચારી:', hi: 'कर्मचारी:'), data.employeeName, textPrimary, textMuted, boldVal: true),
-                      _slipRow(AppStrings.t(lang, en: 'Role:', gu: 'પદવી / રોલ:', hi: 'पद / भूमिका:'), data.role, textPrimary, textMuted),
+                      _slipRow(AppStrings.t(lang, en: 'Role:', gu: 'પદવી / રોલ:', hi: 'पद / भूमिका:'), data.role.trim().toUpperCase(), textPrimary, textMuted),
                       _slipRow(AppStrings.t(lang, en: 'Employee ID:', gu: 'કર્મચારી ID:', hi: 'कर्मचारी ID:'), '#${data.employeeId ?? 100}', textPrimary, textMuted),
                       if (data.phone.isNotEmpty) _slipRow(AppStrings.t(lang, en: 'Mobile:', gu: 'મોબાઈલ:', hi: 'मोबाइल:'), data.phone, textPrimary, textMuted),
 

@@ -64,7 +64,7 @@ class ProductionProvider extends ChangeNotifier {
   List<EmployeeUpadModel> _employeeUpads = [];
   List<WhatsAppLogModel> _whatsappLogs = [];
   String _employeeSearchQuery = '';
-  String _selectedEmployeeRoleFilter = 'All Roles';
+  String _selectedEmployeeRoleFilter = 'ALL ROLES';
   bool _employeeActiveOnlyFilter = false;
 
   ProductionProvider() {
@@ -133,7 +133,10 @@ class ProductionProvider extends ChangeNotifier {
   List<EmployeeModel> get filteredEmployees {
     return _employees.where((e) {
       if (_employeeActiveOnlyFilter && !e.isActive) return false;
-      if (_selectedEmployeeRoleFilter != 'All Roles' && e.role != _selectedEmployeeRoleFilter) return false;
+      final filterUpper = _selectedEmployeeRoleFilter.trim().toUpperCase();
+      if (filterUpper != 'ALL ROLES' && filterUpper != 'ALL' && e.role.trim().toUpperCase() != filterUpper) {
+        return false;
+      }
       if (_employeeSearchQuery.trim().isNotEmpty) {
         final query = _employeeSearchQuery.trim().toLowerCase();
         final matchesName = e.name.toLowerCase().contains(query);
@@ -1741,7 +1744,7 @@ class ProductionProvider extends ChangeNotifier {
   }
 
   void setEmployeeRoleFilter(String role) {
-    _selectedEmployeeRoleFilter = role;
+    _selectedEmployeeRoleFilter = role.trim().toUpperCase();
     notifyListeners();
   }
 
@@ -1752,31 +1755,36 @@ class ProductionProvider extends ChangeNotifier {
 
   // --- Dynamic Roles Management ---
   Future<void> addEmployeeRole(String newRole) async {
-    final trimmed = newRole.trim();
+    final trimmed = newRole.trim().toUpperCase();
     if (trimmed.isEmpty) return;
-    if (_settings.employeeRoles.any((r) => r.toLowerCase() == trimmed.toLowerCase())) return;
-    final updatedList = List<String>.from(_settings.employeeRoles)..add(trimmed);
+    if (_settings.employeeRoles.any((r) => r.trim().toUpperCase() == trimmed)) return;
+    final updatedList = List<String>.from(_settings.employeeRoles.map((r) => r.trim().toUpperCase()))..add(trimmed);
     _settings = _settings.copyWith(employeeRoles: updatedList);
     await _db.saveSettings(_settings);
     notifyListeners();
   }
 
   Future<void> updateEmployeeRole(String oldRole, String newRole) async {
-    final trimmed = newRole.trim();
-    if (trimmed.isEmpty || oldRole == trimmed) return;
-    final updatedList = _settings.employeeRoles.map((r) => r == oldRole ? trimmed : r).toList();
+    final trimmed = newRole.trim().toUpperCase();
+    final oldTrimmed = oldRole.trim().toUpperCase();
+    if (trimmed.isEmpty || oldTrimmed == trimmed) return;
+    final updatedList = _settings.employeeRoles
+        .map((r) => r.trim().toUpperCase() == oldTrimmed ? trimmed : r.trim().toUpperCase())
+        .toSet()
+        .toList();
     _settings = _settings.copyWith(employeeRoles: updatedList);
     await _db.saveSettings(_settings);
 
-    // Update existing employees who had this role in SQLite
+    // Update existing employees who had this role in SQLite (case-insensitive where)
     final db = await _db.database;
-    await db.update('employees', {'role': trimmed}, where: 'role = ?', whereArgs: [oldRole]);
+    await db.rawUpdate('UPDATE employees SET role = ? WHERE UPPER(TRIM(role)) = ?', [trimmed, oldTrimmed]);
     await loadEmployees();
     notifyListeners();
   }
 
   Future<void> deleteEmployeeRole(String role) async {
-    final updatedList = _settings.employeeRoles.where((r) => r != role).toList();
+    final target = role.trim().toUpperCase();
+    final updatedList = _settings.employeeRoles.where((r) => r.trim().toUpperCase() != target).toList();
     if (updatedList.isEmpty) return;
     _settings = _settings.copyWith(employeeRoles: updatedList);
     await _db.saveSettings(_settings);

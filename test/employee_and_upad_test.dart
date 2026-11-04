@@ -29,7 +29,7 @@ void main() {
       final map = emp.toMap();
       expect(map['id'], 101);
       expect(map['name'], 'Ramesh Patel');
-      expect(map['role'], 'Master');
+      expect(map['role'], 'MASTER');
       expect(map['phone'], '9876543210');
       expect(map['monthly_salary'], 28000.0);
       expect(map['is_active'], 1);
@@ -127,7 +127,7 @@ void main() {
       final listAfterUpdate = await dbHelper.getEmployees();
       final fetched = listAfterUpdate.firstWhere((e) => e.id == id1);
       expect(fetched.monthlySalary, 22000.0);
-      expect(fetched.role, 'Master');
+      expect(fetched.role, 'MASTER');
     });
 
     test('Upad recording, cumulative deduction and remaining salary balance', () async {
@@ -418,11 +418,11 @@ void main() {
       // Test Role Filter
       provider.setEmployeeSearchQuery('');
       provider.setEmployeeRoleFilter('Master');
-      final masterEmployees = provider.filteredEmployees.where((e) => e.role == 'Master').toList();
+      final masterEmployees = provider.filteredEmployees.where((e) => e.role == 'MASTER').toList();
       expect(masterEmployees.length, 2);
 
       // Test Active Only Filter
-      provider.setEmployeeRoleFilter('All Roles');
+      provider.setEmployeeRoleFilter('ALL ROLES');
       provider.setEmployeeActiveOnlyFilter(true);
       expect(provider.filteredEmployees.any((e) => e.name == 'Paresh Parmar'), isFalse);
 
@@ -451,12 +451,12 @@ void main() {
       final provider = ProductionProvider();
       await provider.init();
 
-      // Ensure default roles exist
-      expect(provider.employeeRoles, containsAll(['Operator', 'Master', 'Karigar', 'Helper', 'Designer', 'Checker', 'Manager', 'Other']));
+      // Ensure default roles exist in uppercase
+      expect(provider.employeeRoles, containsAll(['OPERATOR', 'MASTER', 'KARIGAR', 'HELPER', 'DESIGNER', 'CHECKER', 'MANAGER', 'OTHER']));
 
-      // 1. Add new role
+      // 1. Add new role (input mixed case -> converted to uppercase)
       await provider.addEmployeeRole('Supervisor');
-      expect(provider.employeeRoles, contains('Supervisor'));
+      expect(provider.employeeRoles, contains('SUPERVISOR'));
 
       // 2. Add employee with new role
       final emp = EmployeeModel(
@@ -467,26 +467,57 @@ void main() {
       );
       await provider.addEmployee(emp);
       final addedEmp = provider.employees.firstWhere((e) => e.name == 'Vipul Shah');
-      expect(addedEmp.role, 'Supervisor');
+      expect(addedEmp.role, 'SUPERVISOR');
 
       // 3. Update role name -> should cascade to employee
       await provider.updateEmployeeRole('Supervisor', 'Senior Supervisor');
-      expect(provider.employeeRoles, contains('Senior Supervisor'));
-      expect(provider.employeeRoles, isNot(contains('Supervisor')));
+      expect(provider.employeeRoles, contains('SENIOR SUPERVISOR'));
+      expect(provider.employeeRoles, isNot(contains('SUPERVISOR')));
 
       final reloadedEmp = provider.employees.firstWhere((e) => e.name == 'Vipul Shah');
-      expect(reloadedEmp.role, 'Senior Supervisor');
+      expect(reloadedEmp.role, 'SENIOR SUPERVISOR');
 
       // 4. Delete role
       await provider.deleteEmployeeRole('Senior Supervisor');
-      expect(provider.employeeRoles, isNot(contains('Senior Supervisor')));
+      expect(provider.employeeRoles, isNot(contains('SENIOR SUPERVISOR')));
 
       // 5. Reset to defaults
       await provider.resetEmployeeRolesToDefault();
-      expect(provider.employeeRoles, containsAll(['Operator', 'Master', 'Karigar', 'Helper', 'Designer', 'Checker', 'Manager', 'Other']));
+      expect(provider.employeeRoles, containsAll(['OPERATOR', 'MASTER', 'KARIGAR', 'HELPER', 'DESIGNER', 'CHECKER', 'MANAGER', 'OTHER']));
 
       // Cleanup
       await provider.deleteEmployee(addedEmp.id!);
+    });
+
+    test('Role Case-Insensitivity: lowercase input saves uppercase and ignores case differences', () async {
+      final provider = ProductionProvider();
+      await provider.init();
+
+      // Attempt to add 'operator' (lowercase) when 'OPERATOR' exists -> should be ignored as duplicate
+      final countBefore = provider.employeeRoles.length;
+      await provider.addEmployeeRole('operator');
+      expect(provider.employeeRoles.length, countBefore);
+
+      // Add 'thread cutter' in small letters -> should be stored as 'THREAD CUTTER'
+      await provider.addEmployeeRole('thread cutter');
+      expect(provider.employeeRoles, contains('THREAD CUTTER'));
+
+      // Filter by 'thread cutter' or 'THREAD CUTTER' -> matches employee with role
+      final worker = EmployeeModel(
+        name: 'Case Test Worker',
+        role: 'thread cutter',
+        monthlySalary: 12000.0,
+      );
+      await provider.addEmployee(worker);
+      final addedWorker = provider.employees.firstWhere((e) => e.name == 'Case Test Worker');
+      expect(addedWorker.role, 'THREAD CUTTER');
+
+      provider.setEmployeeRoleFilter('thread cutter');
+      expect(provider.filteredEmployees.any((e) => e.name == 'Case Test Worker'), isTrue);
+
+      // Clean up
+      await provider.deleteEmployee(addedWorker.id!);
+      await provider.deleteEmployeeRole('THREAD CUTTER');
     });
 
     test('All-Time Upad History & Multi-Employee Aggregations', () async {

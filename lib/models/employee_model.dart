@@ -1,7 +1,7 @@
 class EmployeeModel {
   final int? id;
   final String name;
-  final String role; // 'Operator', 'Master', 'Karigar', 'Helper', 'Designer', 'Checker'
+  final String role; // 'OPERATOR', 'MASTER', 'KARIGAR', 'HELPER', etc.
   final String phone;
   final String gender; // 'Male', 'Female', 'Other'
   final DateTime joiningDate;
@@ -12,14 +12,15 @@ class EmployeeModel {
   EmployeeModel({
     this.id,
     required this.name,
-    this.role = 'Operator',
+    String role = 'OPERATOR',
     this.phone = '',
     this.gender = 'Male',
     DateTime? joiningDate,
     required this.monthlySalary,
     this.isActive = true,
     this.notes = '',
-  }) : joiningDate = joiningDate ?? DateTime.now();
+  })  : role = role.trim().toUpperCase(),
+        joiningDate = joiningDate ?? DateTime.now();
 
   EmployeeModel copyWith({
     int? id,
@@ -35,7 +36,7 @@ class EmployeeModel {
     return EmployeeModel(
       id: id ?? this.id,
       name: name ?? this.name,
-      role: role ?? this.role,
+      role: (role ?? this.role).trim().toUpperCase(),
       phone: phone ?? this.phone,
       gender: gender ?? this.gender,
       joiningDate: joiningDate ?? this.joiningDate,
@@ -49,7 +50,7 @@ class EmployeeModel {
     return {
       if (id != null) 'id': id,
       'name': name.trim(),
-      'role': role.trim(),
+      'role': role.trim().toUpperCase(),
       'phone': phone.trim(),
       'gender': gender.trim(),
       'joining_date': joiningDate.toIso8601String().split('T').first,
@@ -71,7 +72,7 @@ class EmployeeModel {
     return EmployeeModel(
       id: map['id'] as int?,
       name: map['name'] as String? ?? '',
-      role: map['role'] as String? ?? 'Operator',
+      role: (map['role'] as String? ?? 'OPERATOR').trim().toUpperCase(),
       phone: map['phone'] as String? ?? '',
       gender: map['gender'] as String? ?? 'Male',
       joiningDate: parsedDate,

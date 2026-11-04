@@ -389,7 +389,7 @@ Please find below the complete up-to-date statement of your salary and advance a
                                 border: Border.all(color: const Color(0xFF818CF8)),
                               ),
                               child: Text(
-                                emp.role,
+                                emp.role.trim().toUpperCase(),
                                 style: const TextStyle(color: Color(0xFFC7D2FE), fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ),

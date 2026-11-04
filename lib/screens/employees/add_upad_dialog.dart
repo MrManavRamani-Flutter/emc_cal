@@ -161,7 +161,7 @@ class _AddUpadDialogState extends State<AddUpadDialog> {
     final provider = context.read<ProductionProvider>();
     final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
     final empName = _selectedEmployee?.name ?? AppStrings.t(lang, en: 'Employee', gu: 'કર્મચારી', hi: 'कर्मचारी');
-    final role = _selectedEmployee?.role ?? 'Operator';
+    final role = _selectedEmployee?.role.trim().toUpperCase() ?? 'OPERATOR';
     final gender = _selectedEmployee?.gender ?? 'Male';
     final baseSalary = _selectedEmployee?.monthlySalary ?? 0.0;
     final totalPending = widget.currentPendingUpad + amount;
@@ -427,7 +427,7 @@ class _AddUpadDialogState extends State<AddUpadDialog> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    emp.role,
+                                    emp.role.trim().toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
@@ -486,7 +486,7 @@ class _AddUpadDialogState extends State<AddUpadDialog> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    emp.role,
+                                    emp.role.trim().toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
