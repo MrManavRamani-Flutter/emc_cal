@@ -81,10 +81,14 @@ jobs:
           New-Item -ItemType Directory -Force -Path "dist"
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "windows\installer\OM_MAVTAR_Installer.iss"
 
-      - name: Create Standalone Portable ZIP
+      - name: Create Standalone Portable ZIP (With True USB Pen Drive Storage)
         shell: powershell
         run: |
-          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "dist\OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip" -Force
+          $releaseDir = "build\windows\x64\runner\Release"
+          # Create portable.flag marker so database is stored directly inside Pen Drive
+          New-Item -ItemType File -Path "$releaseDir\portable.flag" -Force
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath "dist\OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip" -Force
+          Remove-Item -Path "$releaseDir\portable.flag" -Force
           Write-Host "Portable ZIP generated at dist\OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip" -ForegroundColor Green
 
       - name: Verify Output Files

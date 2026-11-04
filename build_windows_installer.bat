@@ -41,8 +41,10 @@ if defined INNO_PATH (
     echo [SUCCESS] Installer generated at: dist\OM_MAVTAR_Calculator_v1.0_Setup.exe
 ) else (
     echo [INFO] Inno Setup is not installed on this PC.
-    echo Creating Standalone Portable ZIP instead...
+    echo Creating Standalone Portable ZIP instead (with USB Pen Drive portable database)...
+    type nul > "build\windows\x64\runner\Release\portable.flag"
     powershell -Command "Compress-Archive -Path 'build\windows\x64\runner\Release\*' -DestinationPath 'dist\OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip' -Force"
+    del /f /q "build\windows\x64\runner\Release\portable.flag" >nul 2>&1
     echo [SUCCESS] Portable ZIP generated at: dist\OM_MAVTAR_Calculator_v1.0_Windows_Portable.zip
 )
 

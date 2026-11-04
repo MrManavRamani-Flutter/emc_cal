@@ -34,6 +34,32 @@ class DatabaseHelper {
     return _database!;
   }
 
+  /// Returns the base directory where data files should be stored.
+  /// If running in True Portable USB Mode (portable.flag exists next to executable),
+  /// stores database and data directly inside the 'portable_data' folder on the Pen Drive!
+  static Future<Directory> getStorageDirectory() async {
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      try {
+        final exeFile = File(Platform.resolvedExecutable);
+        final exeDir = exeFile.parent;
+        final flagFile = File(p.join(exeDir.path, 'portable.flag'));
+        final portableDataDir = Directory(p.join(exeDir.path, 'portable_data'));
+        if (flagFile.existsSync() || portableDataDir.existsSync()) {
+          if (!portableDataDir.existsSync()) {
+            portableDataDir.createSync(recursive: true);
+          }
+          return portableDataDir;
+        }
+      } catch (_) {}
+    }
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final appDir = Directory(p.join(appDocDir.path, 'EmbroideryProductionCalculator'));
+    if (!await appDir.exists()) {
+      await appDir.create(recursive: true);
+    }
+    return appDir;
+  }
+
   Future<Database> _initDatabase() async {
     if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       sqfliteFfiInit();
@@ -46,11 +72,7 @@ class DatabaseHelper {
     } else if (Platform.environment.containsKey('FLUTTER_TEST')) {
       path = inMemoryDatabasePath;
     } else {
-      final appDocDir = await getApplicationDocumentsDirectory();
-      final appDir = Directory(p.join(appDocDir.path, 'EmbroideryProductionCalculator'));
-      if (!await appDir.exists()) {
-        await appDir.create(recursive: true);
-      }
+      final appDir = await getStorageDirectory();
       path = p.join(appDir.path, 'embroidery_production.db');
     }
 
