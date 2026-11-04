@@ -208,7 +208,12 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     final exportedAt = data['exported_at'] as String? ??
         (data['backup_timestamp'] as String? ?? 'Previous version backup');
 
-    final lang = context.read<ProductionProvider>().settings.appLanguage;
+    final provider = context.read<ProductionProvider>();
+    final bool isSystemEmpty = provider.allRecords.isEmpty &&
+        provider.materials.isEmpty &&
+        provider.employeeUpads.isEmpty;
+    final lang = provider.settings.appLanguage;
+
     final restoreChoice = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -229,7 +234,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
               const SizedBox(height: 16),
-              // Option A: Smart Merge
+              // Option A: Smart Merge or Direct Full Restore if empty
               InkWell(
                 onTap: () => Navigator.pop(ctx, 'merge'),
                 child: Container(
@@ -248,17 +253,36 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              AppStrings.t(lang, en: 'A) Smart Merge (Safe / No Deletion)', gu: 'A) સ્માર્ટ મર્જ (સુરક્ષિત / કોઈ ડીલીટ નહીં)', hi: 'A) स्मार्ट मर्ज (सुरक्षित / कुछ नहीं हटेगा)'),
+                              isSystemEmpty
+                                  ? AppStrings.t(
+                                      lang,
+                                      en: 'A) Direct Full Restore (Clean / Set All Data)',
+                                      gu: 'A) ડાયરેક્ટ સંપૂર્ણ પુનઃસ્થાપિત (બધો ડેટા સેટ કરો)',
+                                      hi: 'A) डायरेक्ट फुल रीस्टोर (पूरा डेटा सेट करें)',
+                                    )
+                                  : AppStrings.t(
+                                      lang,
+                                      en: 'A) Smart Merge (Safe / Preserves Current Data)',
+                                      gu: 'A) સ્માર્ટ મર્જ (સુરક્ષિત / વર્તમાન ડેટા સચવાય)',
+                                      hi: 'A) स्मार्ट मर्ज (सुरक्षित / वर्तमान डेटा सुरक्षित)',
+                                    ),
                               style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF047857), fontSize: 14),
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              AppStrings.t(
-                                lang,
-                                en: 'Adds new records from backup and updates existing ones. Preserves all current data.',
-                                gu: 'બેકઅપમાંથી નવા રેકોર્ડ્સ ઉમેરે છે અને હાલના અપડેટ કરે છે. વર્તમાન ડેટા સુરક્ષિત રહે છે.',
-                                hi: 'बैकअप से नए रिकॉर्ड जोड़ता है और मौजूदा अपडेट करता है। वर्तमान डेटा सुरक्षित रहता है।',
-                              ),
+                              isSystemEmpty
+                                  ? AppStrings.t(
+                                      lang,
+                                      en: 'System is currently empty. Directly sets all $prodCount records, $matCount materials, machines, khatas & settings from backup.',
+                                      gu: 'સિસ્ટમમાં હાલ કોઈ ડેટા નથી. બેકઅપમાંથી તમામ $prodCount રેકોર્ડ્સ, $matCount મટિરિયલ્સ, ખાતાઓ અને મશીનો સીધા જ સેટ થશે.',
+                                      hi: 'सिस्टम में अभी कोई डेटा नहीं है। बैकअप से सभी $prodCount रिकॉर्ड्स, $matCount सामग्री, खाते और मशीनें सीधे सेट हो जाएंगी।',
+                                    )
+                                  : AppStrings.t(
+                                      lang,
+                                      en: 'Adds new records from backup and updates matching ones. All current records are 100% preserved without deletion or overwrite.',
+                                      gu: 'બેકઅપમાંથી નવા રેકોર્ડ્સ ઉમેરે છે અને મેચ થતાં રેકોર્ડ્સ અપડેટ કરે છે. વર્તમાન ડેટા ડિલીટ કે ઓવરરાઈટ થયા વગર ૧૦૦% સુરક્ષિત રહે છે.',
+                                      hi: 'बैकअप से नए रिकॉर्ड जोड़ता है और मेल खाने वाले अपडेट करता है। वर्तमान डेटा बिना हटे या ओवरराइट हुए 100% सुरक्षित रहता है।',
+                                    ),
                               style: const TextStyle(fontSize: 12),
                             ),
                           ],
@@ -348,15 +372,21 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             title: AppStrings.t(lang, en: 'Restore Successful', gu: 'રીસ્ટોર સફળ', hi: 'पुनर्स्थापना सफल'),
             message: AppStrings.t(
               lang,
-              en: isMerge
-                  ? '$prodCount records, $matCount materials merged successfully!'
-                  : '$prodCount records, $matCount materials loaded.\n(AutoBackup_BeforeRestore saved safely)',
-              gu: isMerge
-                  ? '$prodCount રેકોર્ડ્સ, $matCount મટિરિયલ્સ સફળતાપૂર્વક મર્જ થયા!'
-                  : '$prodCount રેકોર્ડ्स, $matCount મટિરિયલ્સ લોડ થયા.\n(AutoBackup_BeforeRestore સુરક્ષિત સેવ થયો છે)',
-              hi: isMerge
-                  ? '$prodCount रिकॉर्ड्स, $matCount सामग्री सफलतापूर्वक मर्ज की गई!'
-                  : '$prodCount रिकॉर्ड्स, $matCount सामग्री लोड हुई।\n(AutoBackup_BeforeRestore सुरक्षित सहेजा गया)',
+              en: isSystemEmpty
+                  ? '$prodCount records, $matCount materials directly restored & set successfully!'
+                  : (isMerge
+                      ? '$prodCount records, $matCount materials merged successfully!'
+                      : '$prodCount records, $matCount materials loaded.\n(AutoBackup_BeforeRestore saved safely)'),
+              gu: isSystemEmpty
+                  ? '$prodCount રેકોર્ડ્સ, $matCount મટિરિયલ્સ સીધા જ સફળતાપૂર્વક સેટ થયા!'
+                  : (isMerge
+                      ? '$prodCount રેકોર્ડ્સ, $matCount મટિરિયલ્સ સફળતાપૂર્વક મર્જ થયા!'
+                      : '$prodCount રેકોર્ડ્સ, $matCount મટિરિયલ્સ લોડ થયા.\n(AutoBackup_BeforeRestore સુરક્ષિત સેવ થયો છે)'),
+              hi: isSystemEmpty
+                  ? '$prodCount रिकॉर्ड्स, $matCount सामग्री सीधे सफलतापूर्वक सेट हो गई!'
+                  : (isMerge
+                      ? '$prodCount रिकॉर्ड्स, $matCount सामग्री सफलतापूर्वक मर्ज की गई!'
+                      : '$prodCount रिकॉर्ड्स, $matCount सामग्री लोड हुई।\n(AutoBackup_BeforeRestore सुरक्षित सहेजा गया)'),
             ),
           );
         }

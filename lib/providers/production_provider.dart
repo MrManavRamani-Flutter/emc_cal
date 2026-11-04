@@ -1247,9 +1247,24 @@ class ProductionProvider extends ChangeNotifier {
     return await _db.exportBackupJson();
   }
 
+  Future<bool> isDatabaseEmpty() async {
+    return await _db.isDatabaseEmpty();
+  }
+
   Future<void> restoreFromJson(String jsonString, {bool merge = false}) async {
     await _db.restoreFromJson(jsonString, merge: merge);
     await init();
+    // Reset filters to ensure restored records are immediately displayed on all screens
+    _selectedAccountFilter = 'All Accounts';
+    _selectedMachineFilter = 'All Machines';
+    _selectedShiftFilter = 'All Shifts';
+    _searchQuery = '';
+    _currentPage = 1;
+    _materialSearchQuery = '';
+    _materialDateFilter = 'All Time';
+    _materialProductFilter = 'All Products';
+    _materialSupplierFilter = 'All Suppliers';
+    notifyListeners();
   }
 
   Future<void> resetToSampleData() async {

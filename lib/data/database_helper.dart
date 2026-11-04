@@ -783,7 +783,7 @@ class DatabaseHelper {
   static const _validColumns = {
     'accounts': {'id', 'name', 'area', 'display_order', 'color_hex', 'is_active', 'notes'},
     'machines': {'id', 'machine_no', 'name', 'head_capacity', 'is_active', 'notes'},
-    'production_records': {'id', 'date', 'design_no', 'machine_no', 'total_stitch', 'final_stitch', 'rate', 'amount', 'heads', 'final_amount', 'notes', 'account_name', 'shift'},
+    'production_records': {'id', 'date', 'created_at', 'design_no', 'machine_no', 'total_stitch', 'final_stitch', 'rate', 'amount', 'heads', 'final_amount', 'notes', 'account_name', 'shift'},
     'material_items': {'id', 'challan_no', 'supplier_name', 'date', 'category', 'product_name', 'item_type', 'mtr', 'mm', 'qty', 'rate', 'amount', 'used_qty', 'notes', 'payment_status', 'payment_date'},
     'material_products': {'id', 'name', 'category', 'default_rate', 'unit', 'default_mtr', 'default_mm', 'notes', 'is_active'},
     'suppliers': {'id', 'name', 'phone', 'city', 'gst_no', 'notes', 'is_active', 'created_at'},
@@ -1090,6 +1090,8 @@ class DatabaseHelper {
       } else if (_dateColumns.contains(key)) {
         if (key == 'payment_date' && (val == null || val.toString().trim().isEmpty)) {
           filtered[key] = null;
+        } else if (key == 'created_at' || key == 'deleted_at') {
+          filtered[key] = val?.toString().trim();
         } else {
           filtered[key] = _sanitizeDate(val);
         }
@@ -1105,6 +1107,15 @@ class DatabaseHelper {
     if (res.isEmpty) return 0;
     final val = res.first['count'];
     return (val is int) ? val : (int.tryParse(val.toString()) ?? 0);
+  }
+
+  Future<bool> isDatabaseEmpty() async {
+    final db = await database;
+    await _ensureMigration(db);
+    final recCount = await _tableCount(db, 'production_records');
+    final matCount = await _tableCount(db, 'material_items');
+    final upadCount = await _tableCount(db, 'employee_upads');
+    return recCount == 0 && matCount == 0 && upadCount == 0;
   }
 
   Future<void> restoreFromJson(String jsonContent, {bool merge = false}) async {
@@ -1138,7 +1149,17 @@ class DatabaseHelper {
     final db = await database;
 
     await db.transaction((txn) async {
-      if (!merge) {
+      // Check if system currently has any existing transactional records
+      final recCount = await _tableCount(txn, 'production_records');
+      final matCount = await _tableCount(txn, 'material_items');
+      final upadCount = await _tableCount(txn, 'employee_upads');
+      final bool isSystemEmpty = (recCount == 0 && matCount == 0 && upadCount == 0);
+
+      // CRITICAL FIX: If the system has NO data, ALWAYS perform a direct, full restore
+      // regardless of whether merge was requested! This sets the full backup data directly into the system.
+      final bool effectiveMerge = merge && !isSystemEmpty;
+
+      if (!effectiveMerge) {
         await txn.delete('accounts');
         await txn.delete('machines');
         await txn.delete('production_records');
@@ -1167,7 +1188,20 @@ class DatabaseHelper {
             row.putIfAbsent('color_hex', () => '#2563EB');
             row.putIfAbsent('is_active', () => 1);
             row.putIfAbsent('notes', () => '');
-            await txn.insert('accounts', row, conflictAlgorithm: ConflictAlgorithm.replace);
+
+            if (effectiveMerge) {
+              final existing = await txn.query('accounts', where: 'name = ?', whereArgs: [row['name']]);
+              if (existing.isNotEmpty) {
+                final existingId = existing.first['id'];
+                final updateMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.update('accounts', updateMap, where: 'id = ?', whereArgs: [existingId]);
+              } else {
+                final insertMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.insert('accounts', insertMap);
+              }
+            } else {
+              await txn.insert('accounts', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
           }
         }
       }
@@ -1194,7 +1228,20 @@ class DatabaseHelper {
             final heads = row['head_capacity'] as int? ?? 12;
             row['head_capacity'] = heads <= 0 ? 12 : heads;
             row.putIfAbsent('is_active', () => 1);
-            await txn.insert('machines', row, conflictAlgorithm: ConflictAlgorithm.replace);
+
+            if (effectiveMerge) {
+              final existing = await txn.query('machines', where: 'machine_no = ?', whereArgs: [machineNo]);
+              if (existing.isNotEmpty) {
+                final existingId = existing.first['id'];
+                final updateMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.update('machines', updateMap, where: 'id = ?', whereArgs: [existingId]);
+              } else {
+                final insertMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.insert('machines', insertMap);
+              }
+            } else {
+              await txn.insert('machines', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
           }
         }
       }
@@ -1264,7 +1311,24 @@ class DatabaseHelper {
             }
             row['shift'] = shift;
 
-            await txn.insert('production_records', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            if (effectiveMerge) {
+              // Smart merge: check if a matching batch already exists
+              final existing = await txn.query(
+                'production_records',
+                where: 'date = ? AND machine_no = ? AND design_no = ? AND shift = ? AND total_stitch = ?',
+                whereArgs: [row['date'], row['machine_no'], row['design_no'], row['shift'], row['total_stitch']],
+              );
+              if (existing.isNotEmpty) {
+                final existingId = existing.first['id'];
+                final updateMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.update('production_records', updateMap, where: 'id = ?', whereArgs: [existingId]);
+              } else {
+                final insertMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.insert('production_records', insertMap);
+              }
+            } else {
+              await txn.insert('production_records', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
           }
         }
       }
@@ -1344,7 +1408,23 @@ class DatabaseHelper {
             }
             row['payment_status'] = pStatus;
 
-            await txn.insert('material_items', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            if (effectiveMerge) {
+              final existing = await txn.query(
+                'material_items',
+                where: 'challan_no = ? AND supplier_name = ? AND product_name = ? AND date = ?',
+                whereArgs: [row['challan_no'], row['supplier_name'], row['product_name'], row['date']],
+              );
+              if (existing.isNotEmpty) {
+                final existingId = existing.first['id'];
+                final updateMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.update('material_items', updateMap, where: 'id = ?', whereArgs: [existingId]);
+              } else {
+                final insertMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.insert('material_items', insertMap);
+              }
+            } else {
+              await txn.insert('material_items', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
           }
         }
       }
@@ -1379,7 +1459,20 @@ class DatabaseHelper {
             row.putIfAbsent('default_mm', () => 0.0);
             row.putIfAbsent('notes', () => '');
             row.putIfAbsent('is_active', () => 1);
-            await txn.insert('material_products', row, conflictAlgorithm: ConflictAlgorithm.replace);
+
+            if (effectiveMerge) {
+              final existing = await txn.query('material_products', where: 'name = ?', whereArgs: [name]);
+              if (existing.isNotEmpty) {
+                final existingId = existing.first['id'];
+                final updateMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.update('material_products', updateMap, where: 'id = ?', whereArgs: [existingId]);
+              } else {
+                final insertMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.insert('material_products', insertMap);
+              }
+            } else {
+              await txn.insert('material_products', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
           }
         }
       }
@@ -1408,7 +1501,20 @@ class DatabaseHelper {
             row.putIfAbsent('notes', () => '');
             row.putIfAbsent('is_active', () => 1);
             row.putIfAbsent('created_at', () => DateTime.now().toIso8601String());
-            await txn.insert('suppliers', row, conflictAlgorithm: ConflictAlgorithm.replace);
+
+            if (effectiveMerge) {
+              final existing = await txn.query('suppliers', where: 'name = ?', whereArgs: [name]);
+              if (existing.isNotEmpty) {
+                final existingId = existing.first['id'];
+                final updateMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.update('suppliers', updateMap, where: 'id = ?', whereArgs: [existingId]);
+              } else {
+                final insertMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.insert('suppliers', insertMap);
+              }
+            } else {
+              await txn.insert('suppliers', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
           }
         }
       }
@@ -1466,7 +1572,12 @@ class DatabaseHelper {
       if (mergedSettings['font_scale'] == null || (mergedSettings['font_scale'] as num) <= 0) {
         mergedSettings['font_scale'] = 1.0;
       }
-      await txn.insert('settings', mergedSettings, conflictAlgorithm: ConflictAlgorithm.replace);
+
+      if (!effectiveMerge) {
+        await txn.insert('settings', mergedSettings, conflictAlgorithm: ConflictAlgorithm.replace);
+      } else {
+        await txn.update('settings', mergedSettings, where: 'id = 1');
+      }
 
       // 9. Employees
       final employeesList = data['employees'] ?? data['Employees'];
@@ -1484,7 +1595,20 @@ class DatabaseHelper {
             row.putIfAbsent('monthly_salary', () => 0.0);
             row.putIfAbsent('is_active', () => 1);
             row.putIfAbsent('notes', () => '');
-            await txn.insert('employees', row, conflictAlgorithm: ConflictAlgorithm.replace);
+
+            if (effectiveMerge) {
+              final existing = await txn.query('employees', where: 'name = ?', whereArgs: [name]);
+              if (existing.isNotEmpty) {
+                final existingId = existing.first['id'];
+                final updateMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.update('employees', updateMap, where: 'id = ?', whereArgs: [existingId]);
+              } else {
+                final insertMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.insert('employees', insertMap);
+              }
+            } else {
+              await txn.insert('employees', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
           }
         }
       }
@@ -1507,7 +1631,24 @@ class DatabaseHelper {
             row.putIfAbsent('date', () => DateTime.now().toIso8601String().split('T').first);
             row.putIfAbsent('notes', () => '');
             row.putIfAbsent('is_settled', () => 0);
-            await txn.insert('employee_upads', row, conflictAlgorithm: ConflictAlgorithm.replace);
+
+            if (effectiveMerge) {
+              final existing = await txn.query(
+                'employee_upads',
+                where: 'employee_name = ? AND date = ? AND amount = ?',
+                whereArgs: [row['employee_name'], row['date'], row['amount']],
+              );
+              if (existing.isNotEmpty) {
+                final existingId = existing.first['id'];
+                final updateMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.update('employee_upads', updateMap, where: 'id = ?', whereArgs: [existingId]);
+              } else {
+                final insertMap = Map<String, dynamic>.from(row)..remove('id');
+                await txn.insert('employee_upads', insertMap);
+              }
+            } else {
+              await txn.insert('employee_upads', row, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
           }
         }
       }
