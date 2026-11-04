@@ -393,12 +393,30 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                       ),
                       const SizedBox(height: 14),
 
-                      // Payment Status Selection
+                      // Quick Payment Presets
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            AppStrings.t(lang, en: 'Payment Status upon creation:', gu: 'બિલ બનાવતી વખતે ચૂકવણી સ્થિતિ:', hi: 'बिल बनाते समय भुगतान स्थिति:'),
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? AppTheme.darkTextSecondary : const Color(0xFF475569)),
+                            AppStrings.t(lang,
+                                en: 'Payment Option:',
+                                gu: 'ચૂકવણી વિકલ્પ:',
+                                hi: 'भुगतान विकल्प:'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppTheme.darkTextSecondary : const Color(0xFF475569),
+                            ),
+                          ),
+                          Text(
+                            paidAmt <= 0
+                                ? '⏳ Pura Baki (પૂરું બાકી)'
+                                : (paidAmt >= totalAmt ? '🟢 Full Paid (પૂરું ચૂકતે)' : '🟡 Partial (અંશતઃ જમા)'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: paidAmt <= 0 ? const Color(0xFFEF4444) : (paidAmt >= totalAmt ? const Color(0xFF10B981) : const Color(0xFFF59E0B)),
+                            ),
                           ),
                         ],
                       ),
@@ -406,96 +424,79 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
+                            child: OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
-                                backgroundColor: paymentOption == 'UNPAID' ? const Color(0xFFEF4444).withValues(alpha: 0.15) : null,
-                                side: BorderSide(color: paymentOption == 'UNPAID' ? const Color(0xFFEF4444) : Colors.grey.shade400, width: paymentOption == 'UNPAID' ? 2 : 1),
+                                backgroundColor: paidAmt <= 0 ? const Color(0xFFEF4444).withValues(alpha: 0.15) : null,
+                                side: BorderSide(
+                                  color: paidAmt <= 0 ? const Color(0xFFEF4444) : Colors.grey.shade400,
+                                  width: paidAmt <= 0 ? 2 : 1,
+                                ),
                                 padding: const EdgeInsets.symmetric(vertical: 9),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
+                              icon: const Icon(Icons.hourglass_bottom_rounded, size: 16),
                               onPressed: () => setDialogState(() {
-                                paymentOption = 'UNPAID';
                                 advanceController.clear();
                               }),
-                              child: Text(
-                                AppStrings.t(lang, en: '⏳ Unpaid (બાકી)', gu: '⏳ Unpaid (બાકી)', hi: '⏳ Unpaid (बकाया)'),
+                              label: Text(
+                                AppStrings.t(lang, en: 'Pura Baki (Unpaid)', gu: 'પૂરું બાકી (Unpaid)', hi: 'पूरा बकाया (Unpaid)'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
-                                  color: paymentOption == 'UNPAID' ? const Color(0xFFEF4444) : Colors.grey.shade600,
+                                  color: paidAmt <= 0 ? const Color(0xFFEF4444) : Colors.grey.shade600,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
                           Expanded(
-                            child: OutlinedButton(
+                            child: OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
-                                backgroundColor: paymentOption == 'PARTIAL' ? const Color(0xFFF59E0B).withValues(alpha: 0.15) : null,
-                                side: BorderSide(color: paymentOption == 'PARTIAL' ? const Color(0xFFF59E0B) : Colors.grey.shade400, width: paymentOption == 'PARTIAL' ? 2 : 1),
-                                padding: const EdgeInsets.symmetric(vertical: 9),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              onPressed: () {
-                                final totalAmtVal = double.tryParse(amountController.text.trim()) ?? 0.0;
-                                setDialogState(() {
-                                  paymentOption = 'PARTIAL';
-                                  if (advanceController.text.isEmpty && totalAmtVal > 0) {
-                                    advanceController.text = (totalAmtVal / 2).toStringAsFixed(0);
-                                  }
-                                });
-                              },
-                              child: Text(
-                                AppStrings.t(lang, en: '🟡 Advance', gu: '🟡 એડવાન્સ જમા', hi: '🟡 अग्रिम जमा'),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: paymentOption == 'PARTIAL' ? const Color(0xFFD97706) : Colors.grey.shade600,
+                                backgroundColor: paidAmt >= totalAmt && totalAmt > 0 ? const Color(0xFF10B981).withValues(alpha: 0.15) : null,
+                                side: BorderSide(
+                                  color: paidAmt >= totalAmt && totalAmt > 0 ? const Color(0xFF10B981) : Colors.grey.shade400,
+                                  width: paidAmt >= totalAmt && totalAmt > 0 ? 2 : 1,
                                 ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: paymentOption == 'FULL' ? const Color(0xFF10B981).withValues(alpha: 0.15) : null,
-                                side: BorderSide(color: paymentOption == 'FULL' ? const Color(0xFF10B981) : Colors.grey.shade400, width: paymentOption == 'FULL' ? 2 : 1),
                                 padding: const EdgeInsets.symmetric(vertical: 9),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
+                              icon: const Icon(Icons.check_circle_rounded, size: 16),
                               onPressed: () => setDialogState(() {
-                                paymentOption = 'FULL';
-                                advanceController.clear();
+                                if (totalAmt > 0) {
+                                  advanceController.text = totalAmt.toStringAsFixed(2);
+                                }
                               }),
-                              child: Text(
-                                AppStrings.t(lang, en: '🟢 Full Paid', gu: '🟢 સંપૂર્ણ ચૂકતે', hi: '🟢 पूर्ण भुगतान'),
+                              label: Text(
+                                AppStrings.t(lang, en: 'Full Payment (Paid)', gu: 'પૂરું ચૂકતે (Full Paid)', hi: 'पूर्ण भुगतान (Paid)'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
-                                  color: paymentOption == 'FULL' ? const Color(0xFF10B981) : Colors.grey.shade600,
+                                  color: paidAmt >= totalAmt && totalAmt > 0 ? const Color(0xFF10B981) : Colors.grey.shade600,
                                 ),
                               ),
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 10),
 
-                      if (paymentOption == 'PARTIAL') ...[
-                        const SizedBox(height: 10),
-                        TextFormField(
-                          controller: advanceController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
-                          decoration: InputDecoration(
-                            labelText: AppStrings.t(lang, en: 'Advance Amount Received Now (₹)', gu: 'અત્યારે જમા મળેલ એડવાન્સ રકમ (₹)', hi: 'अग्रिम प्राप्त राशि (₹)'),
-                            prefixText: '₹ ',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          ),
-                          onChanged: (_) => setDialogState(() {}),
+                      // Custom Advance / Received Input (User enters any amount they want)
+                      TextFormField(
+                        controller: advanceController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                        decoration: InputDecoration(
+                          labelText: AppStrings.t(lang,
+                              en: 'Received Amount (₹) - Enter any custom amount or leave 0',
+                              gu: 'જમા મળેલ રકમ (₹) - તમારી મરજી મુજબ રકમ લખો અથવા 0 રાખો',
+                              hi: 'प्राप्त राशि (₹) - इच्छानुसार राशि दर्ज करें या 0 रखें'),
+                          hintText: 'e.g. 500, 2000, 10000...',
+                          prefixText: '₹ ',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         ),
-                      ],
+                        onChanged: (_) => setDialogState(() {}),
+                      ),
 
                       const SizedBox(height: 12),
                       // Live Accounting Breakdown Box
@@ -744,28 +745,44 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                       const SizedBox(height: 14),
 
                       // Quick Payment Status Presets
-                      Text(
-                        AppStrings.t(lang, en: 'Set Payment Status / જમા સ્થિતિ બદલો:', gu: 'ચૂકવણી સ્થિતિ (Payment Status):', hi: 'भुगतान स्थिति:'),
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? AppTheme.darkTextSecondary : const Color(0xFF475569)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            AppStrings.t(lang, en: 'Quick Preset:', gu: 'ઝડપી પસંદગી:', hi: 'त्वरित विकल्प:'),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? AppTheme.darkTextSecondary : const Color(0xFF475569)),
+                          ),
+                          Text(
+                            currentPaid <= 0
+                                ? '⏳ Pura Baki (પૂરું બાકી)'
+                                : (currentPaid >= totalAmt ? '🟢 Full Paid (પૂરું ચૂકતે)' : '🟡 Partial (અંશતઃ જમા)'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: currentPaid <= 0 ? const Color(0xFFEF4444) : (currentPaid >= totalAmt ? const Color(0xFF10B981) : const Color(0xFFF59E0B)),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 6),
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
+                            child: OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
                                 backgroundColor: currentPaid <= 0 ? const Color(0xFFEF4444).withValues(alpha: 0.15) : null,
                                 side: BorderSide(color: currentPaid <= 0 ? const Color(0xFFEF4444) : Colors.grey.shade400, width: currentPaid <= 0 ? 2 : 1),
                                 padding: const EdgeInsets.symmetric(vertical: 9),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
+                              icon: const Icon(Icons.hourglass_bottom_rounded, size: 16),
                               onPressed: () {
                                 setDialogState(() {
                                   paidAmountController.text = '0.00';
                                 });
                               },
-                              child: Text(
-                                AppStrings.t(lang, en: '⏳ Unpaid (બાકી)', gu: '⏳ Unpaid (બાકી)', hi: '⏳ Unpaid (बकाया)'),
+                              label: Text(
+                                AppStrings.t(lang, en: 'Pura Baki (Unpaid)', gu: 'પૂરું બાકી (Unpaid)', hi: 'पूरा बकाया (Unpaid)'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
@@ -774,46 +791,23 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
                           Expanded(
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: currentPaid > 0 && currentPaid < totalAmt ? const Color(0xFFF59E0B).withValues(alpha: 0.15) : null,
-                                side: BorderSide(color: currentPaid > 0 && currentPaid < totalAmt ? const Color(0xFFF59E0B) : Colors.grey.shade400, width: currentPaid > 0 && currentPaid < totalAmt ? 2 : 1),
-                                padding: const EdgeInsets.symmetric(vertical: 9),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              onPressed: () {
-                                setDialogState(() {
-                                  paidAmountController.text = (totalAmt / 2).toStringAsFixed(2);
-                                });
-                              },
-                              child: Text(
-                                AppStrings.t(lang, en: '🟡 50% Half', gu: '🟡 50% અડધું', hi: '🟡 50% आधा'),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: currentPaid > 0 && currentPaid < totalAmt ? const Color(0xFFD97706) : Colors.grey.shade600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton(
+                            child: OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
                                 backgroundColor: currentPaid >= totalAmt && totalAmt > 0 ? const Color(0xFF10B981).withValues(alpha: 0.15) : null,
                                 side: BorderSide(color: currentPaid >= totalAmt && totalAmt > 0 ? const Color(0xFF10B981) : Colors.grey.shade400, width: currentPaid >= totalAmt && totalAmt > 0 ? 2 : 1),
                                 padding: const EdgeInsets.symmetric(vertical: 9),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
+                              icon: const Icon(Icons.check_circle_rounded, size: 16),
                               onPressed: () {
                                 setDialogState(() {
                                   paidAmountController.text = totalAmt.toStringAsFixed(2);
                                 });
                               },
-                              child: Text(
-                                AppStrings.t(lang, en: '🟢 Full Paid', gu: '🟢 સંપૂર્ણ ચૂકતે', hi: '🟢 पूर्ण जमा'),
+                              label: Text(
+                                AppStrings.t(lang, en: 'Full Payment (Paid)', gu: 'પૂરું ચૂકતે (Full Paid)', hi: 'पूर्ण भुगतान (Paid)'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
@@ -836,11 +830,11 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                           color: Color(0xFF10B981),
                         ),
                         decoration: InputDecoration(
-                          labelText: AppStrings.t(lang, en: 'Paid / Received Amount (₹)', gu: 'જમા થયેલ રકમ (₹)', hi: 'प्राप्त राशि (₹)'),
+                          labelText: AppStrings.t(lang,
+                              en: 'Paid / Received Amount (₹) - Enter any custom amount',
+                              gu: 'જમા થયેલ રકમ (₹) - તમારી મરજી મુજબ રકમ લખો',
+                              hi: 'प्राप्त राशि (₹) - इच्छानुसार राशि दर्ज करें'),
                           prefixText: '₹ ',
-                          helperText: currentPaid <= 0
-                              ? 'Marked as 100% UNPAID (Full payment is pending)'
-                              : (currentPaid >= totalAmt ? 'Marked as FULLY PAID (No remaining due)' : 'PARTIALLY PAID'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         ),
@@ -1099,24 +1093,34 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                     children: [
                       if (remaining > 0)
                         ActionChip(
-                          avatar: const Icon(Icons.done_all_rounded, size: 14, color: Color(0xFF10B981)),
-                          label: Text('Full Due: ₹${remaining.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          avatar: const Icon(Icons.check_circle_rounded, size: 15, color: Color(0xFF10B981)),
+                          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          side: const BorderSide(color: Color(0xFF10B981)),
+                          label: Text(
+                            AppStrings.t(lang,
+                                en: 'Full Payment: ₹${remaining.toStringAsFixed(2)}',
+                                gu: '🟢 પૂરું ચૂકતે: ₹${remaining.toStringAsFixed(2)}',
+                                hi: '🟢 पूरा चुकता: ₹${remaining.toStringAsFixed(2)}'),
+                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF047857)),
+                          ),
                           onPressed: () {
                             setDialogState(() {
                               payAmountController.text = remaining.toStringAsFixed(2);
                             });
                           },
                         ),
-                      if (remaining > 0)
-                        ActionChip(
-                          avatar: const Icon(Icons.pie_chart_outline_rounded, size: 14, color: Color(0xFF3B82F6)),
-                          label: Text('50% Half: ₹${(remaining / 2).toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                          onPressed: () {
-                            setDialogState(() {
-                              payAmountController.text = (remaining / 2).toStringAsFixed(2);
-                            });
-                          },
+                      ActionChip(
+                        avatar: const Icon(Icons.refresh_rounded, size: 15, color: Color(0xFF64748B)),
+                        label: Text(
+                          AppStrings.t(lang, en: 'Clear / Custom', gu: '🔄 રકમ સાફ કરો (Custom)', hi: '🔄 राशि साफ़ करें'),
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
                         ),
+                        onPressed: () {
+                          setDialogState(() {
+                            payAmountController.clear();
+                          });
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -1131,14 +1135,66 @@ class _CustomersScreenState extends State<CustomersScreen> with SingleTickerProv
                       color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF0F172A),
                     ),
                     decoration: InputDecoration(
-                      labelText: AppStrings.t(lang, en: 'Payment Amount to Collect (₹)', gu: 'જમા કરવાની રકમ (₹)', hi: 'जमा करने की राशि (₹)'),
+                      labelText: AppStrings.t(lang,
+                          en: 'Payment Amount to Collect (₹) - Enter any custom amount',
+                          gu: 'જમા કરવાની રકમ (₹) - તમારી મરજી મુજબ રકમ લખો',
+                          hi: 'जमा करने की राशि (₹) - इच्छानुसार राशि दर्ज करें'),
                       prefixText: '₹ ',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                     onChanged: (_) => setDialogState(() {}),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+
+                  // Live payment breakdown feedback
+                  if (enteredVal > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: enteredVal >= remaining
+                            ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                            : const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: enteredVal >= remaining ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            enteredVal >= remaining ? Icons.check_circle_rounded : Icons.hourglass_bottom_rounded,
+                            size: 16,
+                            color: enteredVal >= remaining ? const Color(0xFF059669) : const Color(0xFFD97706),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              enteredVal >= remaining
+                                  ? (enteredVal > remaining
+                                      ? AppStrings.t(lang,
+                                          en: '✅ Bill will be fully paid! Extra/Advance: ₹${(enteredVal - remaining).toStringAsFixed(2)}',
+                                          gu: '✅ બિલ સંપૂર્ણ ચૂકતે થશે! વધારે/એડવાન્સ: ₹${(enteredVal - remaining).toStringAsFixed(2)}',
+                                          hi: '✅ बिल पूर्ण चुकता होगा! अतिरिक्त: ₹${(enteredVal - remaining).toStringAsFixed(2)}')
+                                      : AppStrings.t(lang,
+                                          en: '✅ Bill will be marked as FULLY PAID (ચૂકતે)',
+                                          gu: '✅ બિલ પૂરું ચૂકતે (FULL PAID) થઈ જશે',
+                                          hi: '✅ बिल पूर्ण चुकता (FULL PAID) हो जाएगा'))
+                                  : AppStrings.t(lang,
+                                      en: '🟡 Remaining Due after this payment: ₹${(remaining - enteredVal).toStringAsFixed(2)}',
+                                      gu: '🟡 આ જમા થયા પછી બાકી રહેશે: ₹${(remaining - enteredVal).toStringAsFixed(2)}',
+                                      hi: '🟡 इस भुगतान के बाद बकाया रहेगा: ₹${(remaining - enteredVal).toStringAsFixed(2)}'),
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: enteredVal >= remaining ? const Color(0xFF047857) : const Color(0xFFB45309),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 10),
 
                   // Mode & Date
                   Row(
