@@ -4,6 +4,8 @@ const Map<String, String> appHindi = {
   'production': 'उत्पादन',
   'productionEntry': 'उत्पादन प्रविष्टि',
   'materials': 'कच्चा माल खरीद',
+  'customers': 'ग्राहक और बिलिंग',
+  'expenses': 'कारखाना खर्च',
   'employees': 'कर्मचारी एवं अग्रिम',
   'accounts': 'खाता हिसाब',
   'analytics': 'एनालिटिक्स',

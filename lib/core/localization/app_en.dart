@@ -4,6 +4,8 @@ const Map<String, String> appEn = {
   'production': 'Production',
   'productionEntry': 'Production Entry',
   'materials': 'Raw Material Purchases',
+  'customers': 'Customers & Billing',
+  'expenses': 'Factory Expenses',
   'employees': 'Employees & Advances',
   'accounts': 'Khata Accounts',
   'analytics': 'Analytics',

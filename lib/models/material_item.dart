@@ -16,7 +16,8 @@ class MaterialItem {
   final double amount; // Total amount (qty * rate)
   final double usedQty; // Stock consumed so far
   final String notes;
-  final String paymentStatus; // 'Paid' or 'Pending' (default 'Pending')
+  final String paymentStatus; // 'Paid', 'Partial' or 'Pending' (default 'Pending')
+  final double paidAmount; // Actual amount paid to supplier
   final DateTime? paymentDate;
 
   MaterialItem({
@@ -34,11 +35,19 @@ class MaterialItem {
     double? amount,
     this.usedQty = 0.0,
     this.notes = '',
-    this.paymentStatus = 'Pending',
+    double? paidAmount,
+    String? paymentStatus,
     this.paymentDate,
-  }) : amount = amount ?? (qty * rate);
+  })  : amount = amount ?? (qty * rate),
+        paidAmount = (paidAmount ?? (paymentStatus?.toLowerCase() == 'paid' ? (amount ?? (qty * rate)) : 0.0)).clamp(0.0, double.infinity),
+        paymentStatus = paymentStatus ??
+            ((paidAmount ?? 0.0) >= (amount ?? (qty * rate)) && (amount ?? (qty * rate)) > 0
+                ? 'Paid'
+                : ((paidAmount ?? 0.0) > 0 ? 'Partial' : 'Pending'));
 
-  bool get isPaid => paymentStatus.toLowerCase() == 'paid';
+  bool get isPaid => paidAmount >= amount && amount > 0;
+  bool get isPartiallyPaid => paidAmount > 0 && paidAmount < amount;
+  double get remainingAmount => (amount - paidAmount).clamp(0.0, double.infinity);
   double get balanceQty => (qty - usedQty).clamp(0.0, double.infinity);
   double get balanceAmount => balanceQty * rate;
   double get usagePercent => qty > 0 ? ((usedQty / qty) * 100).clamp(0.0, 100.0) : 0.0;
@@ -64,6 +73,7 @@ class MaterialItem {
     double? amount,
     double? usedQty,
     String? notes,
+    double? paidAmount,
     String? paymentStatus,
     DateTime? paymentDate,
   }) {
@@ -82,6 +92,7 @@ class MaterialItem {
       amount: amount ?? (qty != null && rate != null ? qty * rate : this.amount),
       usedQty: usedQty ?? this.usedQty,
       notes: notes ?? this.notes,
+      paidAmount: paidAmount ?? this.paidAmount,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       paymentDate: paymentDate ?? this.paymentDate,
     );
@@ -103,6 +114,7 @@ class MaterialItem {
       'amount': amount,
       'used_qty': usedQty,
       'notes': notes,
+      'paid_amount': paidAmount,
       'payment_status': paymentStatus,
       'payment_date': paymentDate?.toIso8601String(),
     };
@@ -134,22 +146,31 @@ class MaterialItem {
       }
     } catch (_) {}
 
+    final parsedQty = (map['qty'] as num?)?.toDouble() ?? (double.tryParse(map['qty']?.toString() ?? '') ?? 0.0);
+    final parsedRate = (map['rate'] as num?)?.toDouble() ?? (double.tryParse(map['rate']?.toString() ?? '') ?? 0.0);
+    final rawAmount = (map['amount'] as num?)?.toDouble() ?? (double.tryParse(map['amount']?.toString() ?? '') ?? 0.0);
+    final itemAmount = rawAmount > 0 ? rawAmount : (parsedQty * parsedRate);
+
+    final rawStatus = (map['payment_status'] as String? ?? 'Pending').trim();
+    final rawPaid = (map['paid_amount'] as num?)?.toDouble() ?? (double.tryParse(map['paid_amount']?.toString() ?? '') ?? (rawStatus.toLowerCase() == 'paid' ? itemAmount : 0.0));
+
     return MaterialItem(
-      id: map['id'] as int?,
+      id: map['id'] != null ? (map['id'] is int ? map['id'] as int : int.tryParse(map['id'].toString())) : null,
       challanNo: map['challan_no'] as String? ?? '',
       supplierName: map['supplier_name'] as String? ?? '',
       date: parsedDate,
       category: map['category'] as String? ?? 'Sequence',
       productName: map['product_name'] as String? ?? '',
       itemType: map['item_type'] as String? ?? 'cd',
-      mtr: (map['mtr'] as num?)?.toDouble() ?? 0.0,
-      mm: (map['mm'] as num?)?.toDouble() ?? 0.0,
-      qty: (map['qty'] as num?)?.toDouble() ?? 0.0,
-      rate: (map['rate'] as num?)?.toDouble() ?? 0.0,
-      amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
-      usedQty: (map['used_qty'] as num?)?.toDouble() ?? 0.0,
+      mtr: (map['mtr'] as num?)?.toDouble() ?? (double.tryParse(map['mtr']?.toString() ?? '') ?? 0.0),
+      mm: (map['mm'] as num?)?.toDouble() ?? (double.tryParse(map['mm']?.toString() ?? '') ?? 0.0),
+      qty: parsedQty,
+      rate: parsedRate,
+      amount: itemAmount,
+      usedQty: (map['used_qty'] as num?)?.toDouble() ?? (double.tryParse(map['used_qty']?.toString() ?? '') ?? 0.0),
       notes: map['notes'] as String? ?? '',
-      paymentStatus: map['payment_status'] as String? ?? 'Pending',
+      paidAmount: rawPaid,
+      paymentStatus: rawStatus,
       paymentDate: parsedPaymentDate,
     );
   }

@@ -534,7 +534,7 @@ class PdfExporter {
   }
 
   /// Fallback: saves PDF to Documents/PDF_Statements and opens in system default viewer (Preview)
-  static Future<void> _fallbackSaveAndOpenPdf({
+  static Future<String?> _fallbackSaveAndOpenPdf({
     required Uint8List pdfBytes,
     required String filename,
   }) async {
@@ -549,7 +549,30 @@ class PdfExporter {
       if (Platform.isMacOS) {
         await Process.run('open', [file.path]);
       }
-    } catch (_) {}
+      return file.path;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Exports Challan Invoice directly to disk and opens in Preview
+  static Future<String?> exportAndOpenChallanInvoicePdf({
+    required ChallanSummary challan,
+    String? companyName,
+    String? supplierPhone,
+    String? supplierCity,
+  }) async {
+    final pdfBytes = await generateChallanInvoicePdf(
+      challan: challan,
+      companyName: companyName,
+      supplierPhone: supplierPhone,
+      supplierCity: supplierCity,
+    );
+    final filename = 'Challan_Bill_${challan.challanNo.replaceAll(RegExp(r'[\\/*?:\[\]\s]'), '_')}_${DateFormat("yyyyMMdd_HHmmss").format(DateTime.now())}.pdf';
+    return await _fallbackSaveAndOpenPdf(
+      pdfBytes: pdfBytes,
+      filename: filename,
+    );
   }
 
   /// Direct Save to disk with FilePicker

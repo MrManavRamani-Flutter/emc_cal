@@ -6,9 +6,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../models/account_model.dart';
+import '../models/customer_bill_model.dart';
+import '../models/customer_model.dart';
+import '../models/customer_payment_model.dart';
 import '../models/deleted_record_item.dart';
 import '../models/employee_model.dart';
 import '../models/employee_upad_model.dart';
+import '../models/expense_model.dart';
 import '../models/machine_model.dart';
 import '../models/material_item.dart';
 import '../models/material_product.dart';
@@ -136,6 +140,7 @@ class DatabaseHelper {
             amount REAL NOT NULL,
             used_qty REAL DEFAULT 0.0,
             notes TEXT,
+            paid_amount REAL DEFAULT 0.0,
             payment_status TEXT DEFAULT 'Pending',
             payment_date TEXT
           )
@@ -219,6 +224,63 @@ class DatabaseHelper {
             amount REAL NOT NULL DEFAULT 0.0,
             created_at TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'Sent'
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS expenses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            category TEXT NOT NULL,
+            amount REAL NOT NULL DEFAULT 0.0,
+            payment_mode TEXT NOT NULL DEFAULT 'Cash',
+            paid_to TEXT NOT NULL DEFAULT '',
+            notes TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            phone TEXT NOT NULL DEFAULT '',
+            city TEXT NOT NULL DEFAULT '',
+            gst_no TEXT NOT NULL DEFAULT '',
+            notes TEXT NOT NULL DEFAULT '',
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS customer_bills (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bill_no TEXT NOT NULL UNIQUE,
+            customer_id INTEGER,
+            customer_name TEXT NOT NULL,
+            date TEXT NOT NULL,
+            total_amount REAL NOT NULL DEFAULT 0.0,
+            paid_amount REAL NOT NULL DEFAULT 0.0,
+            payment_status TEXT NOT NULL DEFAULT 'Unpaid',
+            payment_date TEXT,
+            design_details TEXT NOT NULL DEFAULT '',
+            notes TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS customer_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bill_id INTEGER,
+            customer_id INTEGER,
+            customer_name TEXT NOT NULL,
+            amount REAL NOT NULL DEFAULT 0.0,
+            date TEXT NOT NULL,
+            payment_mode TEXT NOT NULL DEFAULT 'Cash',
+            notes TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
           )
         ''');
 
@@ -558,6 +620,84 @@ class DatabaseHelper {
       await db.execute('UPDATE employees SET role = UPPER(TRIM(role)) WHERE role IS NOT NULL');
       await db.execute('UPDATE settings SET employee_roles = UPPER(TRIM(employee_roles)) WHERE employee_roles IS NOT NULL');
     } catch (_) {}
+
+    // 22. Ensure material_items has paid_amount column
+    try {
+      await db.execute('ALTER TABLE material_items ADD COLUMN paid_amount REAL DEFAULT 0.0');
+    } catch (_) {}
+    try {
+      // Sync legacy paid records so paid_amount equals amount
+      await db.execute("UPDATE material_items SET paid_amount = amount WHERE LOWER(payment_status) = 'paid' AND (paid_amount IS NULL OR paid_amount = 0)");
+    } catch (_) {}
+
+    // 23. Ensure expenses table exists
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS expenses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT NOT NULL,
+          category TEXT NOT NULL,
+          amount REAL NOT NULL,
+          payment_mode TEXT DEFAULT 'Cash',
+          paid_to TEXT DEFAULT '',
+          notes TEXT DEFAULT '',
+          created_at TEXT NOT NULL
+        )
+      ''');
+    } catch (_) {}
+
+    // 24. Ensure customers table exists
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS customers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          phone TEXT DEFAULT '',
+          city TEXT DEFAULT '',
+          gst_no TEXT DEFAULT '',
+          notes TEXT DEFAULT '',
+          is_active INTEGER DEFAULT 1,
+          created_at TEXT NOT NULL
+        )
+      ''');
+    } catch (_) {}
+
+    // 25. Ensure customer_bills table exists
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS customer_bills (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          bill_no TEXT NOT NULL,
+          customer_id INTEGER,
+          customer_name TEXT NOT NULL,
+          date TEXT NOT NULL,
+          total_amount REAL NOT NULL,
+          paid_amount REAL DEFAULT 0.0,
+          payment_status TEXT DEFAULT 'Unpaid',
+          payment_date TEXT,
+          design_details TEXT DEFAULT '',
+          notes TEXT DEFAULT '',
+          created_at TEXT NOT NULL
+        )
+      ''');
+    } catch (_) {}
+
+    // 26. Ensure customer_payments table exists
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS customer_payments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          bill_id INTEGER,
+          customer_id INTEGER,
+          customer_name TEXT NOT NULL,
+          amount REAL NOT NULL,
+          date TEXT NOT NULL,
+          payment_mode TEXT DEFAULT 'Cash',
+          notes TEXT DEFAULT '',
+          created_at TEXT NOT NULL
+        )
+      ''');
+    } catch (_) {}
   }
 
   // --- Account Operations ---
@@ -761,6 +901,10 @@ class DatabaseHelper {
     final employees = await getEmployees();
     final employeeUpads = await getEmployeeUpads();
     final whatsappLogs = await getWhatsAppLogs();
+    final expenses = await getExpenses();
+    final customers = await getCustomers();
+    final customerBills = await getCustomerBills();
+    final customerPayments = await getCustomerPayments();
     final settings = await getSettings();
 
     final data = {
@@ -780,6 +924,10 @@ class DatabaseHelper {
       'employees': employees.map((e) => e.toMap()).toList(),
       'employee_upads': employeeUpads.map((u) => u.toMap()).toList(),
       'whatsapp_logs': whatsappLogs.map((l) => l.toMap()).toList(),
+      'expenses': expenses.map((e) => e.toMap()).toList(),
+      'customers': customers.map((c) => c.toMap()).toList(),
+      'customer_bills': customerBills.map((b) => b.toMap()).toList(),
+      'customer_payments': customerPayments.map((p) => p.toMap()).toList(),
       'settings': settings.toMap(),
     };
 
@@ -790,13 +938,17 @@ class DatabaseHelper {
     'accounts': {'id', 'name', 'area', 'display_order', 'color_hex', 'is_active', 'notes'},
     'machines': {'id', 'machine_no', 'name', 'head_capacity', 'is_active', 'notes'},
     'production_records': {'id', 'date', 'created_at', 'design_no', 'machine_no', 'total_stitch', 'final_stitch', 'rate', 'amount', 'heads', 'final_amount', 'notes', 'account_name', 'shift'},
-    'material_items': {'id', 'challan_no', 'supplier_name', 'date', 'category', 'product_name', 'item_type', 'mtr', 'mm', 'qty', 'rate', 'amount', 'used_qty', 'notes', 'payment_status', 'payment_date'},
+    'material_items': {'id', 'challan_no', 'supplier_name', 'date', 'category', 'product_name', 'item_type', 'mtr', 'mm', 'qty', 'rate', 'amount', 'used_qty', 'notes', 'paid_amount', 'payment_status', 'payment_date'},
     'material_products': {'id', 'name', 'category', 'default_rate', 'unit', 'default_mtr', 'default_mm', 'notes', 'is_active'},
     'suppliers': {'id', 'name', 'phone', 'city', 'gst_no', 'notes', 'is_active', 'created_at'},
     'deleted_records': {'id', 'record_type', 'record_title', 'record_subtitle', 'original_id', 'original_data', 'deleted_at', 'is_archived'},
     'employees': {'id', 'name', 'role', 'gender', 'phone', 'joining_date', 'monthly_salary', 'is_active', 'notes'},
     'employee_upads': {'id', 'employee_id', 'employee_name', 'amount', 'date', 'notes', 'is_settled'},
     'whatsapp_logs': {'id', 'employee_id', 'employee_name', 'recipient_phone', 'sender_phone', 'message', 'message_type', 'amount', 'created_at', 'status'},
+    'expenses': {'id', 'date', 'category', 'amount', 'payment_mode', 'paid_to', 'notes', 'created_at'},
+    'customers': {'id', 'name', 'phone', 'city', 'gst_no', 'notes', 'is_active', 'created_at'},
+    'customer_bills': {'id', 'bill_no', 'customer_id', 'customer_name', 'date', 'total_amount', 'paid_amount', 'payment_status', 'payment_date', 'design_details', 'notes', 'created_at'},
+    'customer_payments': {'id', 'bill_id', 'customer_id', 'customer_name', 'amount', 'date', 'payment_mode', 'notes', 'created_at'},
     'settings': {'id', 'company_name', 'operator_name', 'currency_symbol', 'stitch_divider', 'available_rates', 'available_heads', 'default_rate', 'default_heads', 'date_format', 'auto_refresh_seconds', 'is_dark_mode', 'theme_color_hex', 'employee_roles', 'sender_phone', 'whatsapp_auto_send', 'whatsapp_message_language', 'app_language', 'font_scale'},
   };
 
@@ -810,6 +962,8 @@ class DatabaseHelper {
     'original_id',
     'is_archived',
     'employee_id',
+    'customer_id',
+    'bill_id',
     'is_settled',
     'auto_refresh_seconds',
     'is_dark_mode',
@@ -826,6 +980,8 @@ class DatabaseHelper {
     'mm',
     'qty',
     'used_qty',
+    'paid_amount',
+    'total_amount',
     'default_rate',
     'default_mtr',
     'default_mm',
@@ -1176,6 +1332,10 @@ class DatabaseHelper {
         await txn.delete('employees');
         await txn.delete('employee_upads');
         await txn.delete('whatsapp_logs');
+        await txn.delete('expenses');
+        await txn.delete('customers');
+        await txn.delete('customer_bills');
+        await txn.delete('customer_payments');
         await txn.delete('settings');
       }
 
@@ -1413,6 +1573,10 @@ class DatabaseHelper {
               pStatus = 'Pending';
             }
             row['payment_status'] = pStatus;
+            final finalAmt = row['amount'] as double? ?? 0.0;
+            if (!row.containsKey('paid_amount') || row['paid_amount'] == null) {
+              row['paid_amount'] = pStatus == 'Paid' ? finalAmt : 0.0;
+            }
 
             if (effectiveMerge) {
               final existing = await txn.query(
@@ -1680,6 +1844,85 @@ class DatabaseHelper {
           }
         }
       }
+
+      // 12. Expenses
+      final expensesList = data['expenses'] ?? data['Expenses'];
+      if (expensesList is List) {
+        for (final ex in expensesList) {
+          if (ex is Map) {
+            final row = _filterTableColumns('expenses', ex);
+            final cat = (row['category'] as String? ?? '').trim();
+            if (cat.isEmpty) continue;
+            row['category'] = cat.toUpperCase();
+            row.putIfAbsent('amount', () => 0.0);
+            row.putIfAbsent('date', () => DateTime.now().toIso8601String().split('T').first);
+            row.putIfAbsent('payment_mode', () => 'Cash');
+            row.putIfAbsent('paid_to', () => '');
+            row.putIfAbsent('notes', () => '');
+            row.putIfAbsent('created_at', () => DateTime.now().toIso8601String());
+            await txn.insert('expenses', row, conflictAlgorithm: ConflictAlgorithm.replace);
+          }
+        }
+      }
+
+      // 13. Customers
+      final customersList = data['customers'] ?? data['Customers'];
+      if (customersList is List) {
+        for (final c in customersList) {
+          if (c is Map) {
+            final row = _filterTableColumns('customers', c);
+            final name = (row['name'] as String? ?? '').trim();
+            if (name.isEmpty) continue;
+            row['name'] = name;
+            row.putIfAbsent('phone', () => '');
+            row.putIfAbsent('city', () => '');
+            row.putIfAbsent('gst_no', () => '');
+            row.putIfAbsent('notes', () => '');
+            row.putIfAbsent('is_active', () => 1);
+            row.putIfAbsent('created_at', () => DateTime.now().toIso8601String());
+            await txn.insert('customers', row, conflictAlgorithm: ConflictAlgorithm.replace);
+          }
+        }
+      }
+
+      // 14. Customer Bills
+      final billsList = data['customer_bills'] ?? data['customerBills'];
+      if (billsList is List) {
+        for (final b in billsList) {
+          if (b is Map) {
+            final row = _filterTableColumns('customer_bills', b);
+            final billNo = (row['bill_no'] as String? ?? '').trim();
+            final cName = (row['customer_name'] as String? ?? '').trim();
+            if (billNo.isEmpty && cName.isEmpty) continue;
+            row.putIfAbsent('total_amount', () => 0.0);
+            row.putIfAbsent('paid_amount', () => 0.0);
+            row.putIfAbsent('payment_status', () => 'Unpaid');
+            row.putIfAbsent('date', () => DateTime.now().toIso8601String().split('T').first);
+            row.putIfAbsent('design_details', () => '');
+            row.putIfAbsent('notes', () => '');
+            row.putIfAbsent('created_at', () => DateTime.now().toIso8601String());
+            await txn.insert('customer_bills', row, conflictAlgorithm: ConflictAlgorithm.replace);
+          }
+        }
+      }
+
+      // 15. Customer Payments
+      final paymentsList = data['customer_payments'] ?? data['customerPayments'];
+      if (paymentsList is List) {
+        for (final p in paymentsList) {
+          if (p is Map) {
+            final row = _filterTableColumns('customer_payments', p);
+            final cName = (row['customer_name'] as String? ?? '').trim();
+            if (cName.isEmpty) continue;
+            row.putIfAbsent('amount', () => 0.0);
+            row.putIfAbsent('date', () => DateTime.now().toIso8601String().split('T').first);
+            row.putIfAbsent('payment_mode', () => 'Cash');
+            row.putIfAbsent('notes', () => '');
+            row.putIfAbsent('created_at', () => DateTime.now().toIso8601String());
+            await txn.insert('customer_payments', row, conflictAlgorithm: ConflictAlgorithm.replace);
+          }
+        }
+      }
     });
   }
 
@@ -1695,6 +1938,10 @@ class DatabaseHelper {
       await txn.delete('deleted_records');
       await txn.delete('employees');
       await txn.delete('employee_upads');
+      await txn.delete('expenses');
+      await txn.delete('customers');
+      await txn.delete('customer_bills');
+      await txn.delete('customer_payments');
       await txn.delete('settings');
 
       for (final account in SampleData.getInitialAccounts()) {
@@ -2288,5 +2535,297 @@ class DatabaseHelper {
     final db = await database;
     await _ensureMigration(db);
     return await db.delete('whatsapp_logs');
+  }
+
+  // --- Material Challan Partial & Full Payment Operations ---
+  Future<void> recordChallanPayment({
+    required String challanNo,
+    required double paymentAmount,
+    DateTime? paymentDate,
+    String? notes,
+  }) async {
+    final db = await database;
+    await _ensureMigration(db);
+    final date = paymentDate ?? DateTime.now();
+    final dateStr = date.toIso8601String();
+
+    final List<Map<String, dynamic>> items = await db.query(
+      'material_items',
+      where: 'challan_no = ?',
+      whereArgs: [challanNo],
+      orderBy: 'id ASC',
+    );
+
+    if (items.isEmpty) return;
+
+    double remainingToAllocate = paymentAmount;
+
+    for (final map in items) {
+      final id = map['id'] as int;
+      final amount = (map['amount'] as num?)?.toDouble() ?? 0.0;
+      final currentPaid = (map['paid_amount'] as num?)?.toDouble() ?? 0.0;
+      final itemRemaining = (amount - currentPaid).clamp(0.0, double.infinity);
+
+      if (itemRemaining <= 0) continue;
+
+      final allocate = remainingToAllocate > itemRemaining ? itemRemaining : remainingToAllocate;
+      final newPaid = (currentPaid + allocate).clamp(0.0, amount);
+      final newStatus = newPaid >= amount ? 'Paid' : (newPaid > 0 ? 'Partial' : 'Pending');
+
+      await db.update(
+        'material_items',
+        {
+          'paid_amount': newPaid,
+          'payment_status': newStatus,
+          'payment_date': dateStr,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      remainingToAllocate -= allocate;
+      if (remainingToAllocate <= 0) break;
+    }
+  }
+
+  // --- Expenses Operations ---
+  Future<List<ExpenseModel>> getExpenses({
+    String? category,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? searchQuery,
+  }) async {
+    final db = await database;
+    await _ensureMigration(db);
+    List<String> whereClauses = [];
+    List<dynamic> whereArgs = [];
+
+    if (category != null && category.trim().isNotEmpty && category != 'ALL') {
+      whereClauses.add('UPPER(category) = ?');
+      whereArgs.add(category.trim().toUpperCase());
+    }
+
+    if (startDate != null) {
+      final sStr = startDate.toIso8601String().split('T').first;
+      whereClauses.add('date >= ?');
+      whereArgs.add(sStr);
+    }
+
+    if (endDate != null) {
+      final eStr = endDate.toIso8601String().split('T').first;
+      whereClauses.add('date <= ?');
+      whereArgs.add(eStr);
+    }
+
+    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+      final query = '%${searchQuery.trim().toLowerCase()}%';
+      whereClauses.add('(LOWER(category) LIKE ? OR LOWER(paid_to) LIKE ? OR LOWER(notes) LIKE ? OR LOWER(payment_mode) LIKE ?)');
+      whereArgs.addAll([query, query, query, query]);
+    }
+
+    final where = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : null;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'expenses',
+      where: where,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+      orderBy: 'date DESC, id DESC',
+    );
+    return maps.map((e) => ExpenseModel.fromMap(e)).toList();
+  }
+
+  Future<int> insertExpense(ExpenseModel expense) async {
+    final db = await database;
+    await _ensureMigration(db);
+    final map = expense.toMap()..remove('id');
+    return await db.insert('expenses', map);
+  }
+
+  Future<int> updateExpense(ExpenseModel expense) async {
+    final db = await database;
+    await _ensureMigration(db);
+    return await db.update('expenses', expense.toMap(), where: 'id = ?', whereArgs: [expense.id]);
+  }
+
+  Future<int> deleteExpense(int id) async {
+    final db = await database;
+    await _ensureMigration(db);
+    return await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- Customer / Party Operations ---
+  Future<List<CustomerModel>> getCustomers({bool? activeOnly, String? searchQuery}) async {
+    final db = await database;
+    await _ensureMigration(db);
+    List<String> whereClauses = [];
+    List<dynamic> whereArgs = [];
+
+    if (activeOnly == true) {
+      whereClauses.add('is_active = 1');
+    }
+
+    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+      final query = '%${searchQuery.trim().toLowerCase()}%';
+      whereClauses.add('(LOWER(name) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(city) LIKE ? OR LOWER(gst_no) LIKE ?)');
+      whereArgs.addAll([query, query, query, query]);
+    }
+
+    final where = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : null;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'customers',
+      where: where,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+      orderBy: 'name ASC',
+    );
+    return maps.map((c) => CustomerModel.fromMap(c)).toList();
+  }
+
+  Future<int> insertCustomer(CustomerModel customer) async {
+    final db = await database;
+    await _ensureMigration(db);
+    final map = customer.toMap()..remove('id');
+    return await db.insert('customers', map);
+  }
+
+  Future<int> updateCustomer(CustomerModel customer) async {
+    final db = await database;
+    await _ensureMigration(db);
+    return await db.update('customers', customer.toMap(), where: 'id = ?', whereArgs: [customer.id]);
+  }
+
+  Future<int> deleteCustomer(int id) async {
+    final db = await database;
+    await _ensureMigration(db);
+    return await db.delete('customers', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- Customer Bills Operations ---
+  Future<List<CustomerBillModel>> getCustomerBills({
+    int? customerId,
+    String? status,
+    String? searchQuery,
+  }) async {
+    final db = await database;
+    await _ensureMigration(db);
+    List<String> whereClauses = [];
+    List<dynamic> whereArgs = [];
+
+    if (customerId != null) {
+      whereClauses.add('customer_id = ?');
+      whereArgs.add(customerId);
+    }
+
+    if (status != null && status.trim().isNotEmpty && status.toUpperCase() != 'ALL') {
+      whereClauses.add('LOWER(payment_status) = ?');
+      whereArgs.add(status.trim().toLowerCase());
+    }
+
+    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+      final query = '%${searchQuery.trim().toLowerCase()}%';
+      whereClauses.add('(LOWER(bill_no) LIKE ? OR LOWER(customer_name) LIKE ? OR LOWER(design_details) LIKE ? OR LOWER(notes) LIKE ?)');
+      whereArgs.addAll([query, query, query, query]);
+    }
+
+    final where = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : null;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'customer_bills',
+      where: where,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+      orderBy: 'date DESC, id DESC',
+    );
+    return maps.map((b) => CustomerBillModel.fromMap(b)).toList();
+  }
+
+  Future<int> insertCustomerBill(CustomerBillModel bill) async {
+    final db = await database;
+    await _ensureMigration(db);
+    final map = bill.toMap()..remove('id');
+    return await db.insert('customer_bills', map);
+  }
+
+  Future<int> updateCustomerBill(CustomerBillModel bill) async {
+    final db = await database;
+    await _ensureMigration(db);
+    return await db.update('customer_bills', bill.toMap(), where: 'id = ?', whereArgs: [bill.id]);
+  }
+
+  Future<int> deleteCustomerBill(int id) async {
+    final db = await database;
+    await _ensureMigration(db);
+    return await db.delete('customer_bills', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- Customer Payments Operations ---
+  Future<List<CustomerPaymentModel>> getCustomerPayments({int? customerId, int? billId}) async {
+    final db = await database;
+    await _ensureMigration(db);
+    List<String> whereClauses = [];
+    List<dynamic> whereArgs = [];
+
+    if (customerId != null) {
+      whereClauses.add('customer_id = ?');
+      whereArgs.add(customerId);
+    }
+    if (billId != null) {
+      whereClauses.add('bill_id = ?');
+      whereArgs.add(billId);
+    }
+
+    final where = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : null;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'customer_payments',
+      where: where,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+      orderBy: 'date DESC, id DESC',
+    );
+    return maps.map((p) => CustomerPaymentModel.fromMap(p)).toList();
+  }
+
+  Future<int> recordCustomerPayment(CustomerPaymentModel payment) async {
+    final db = await database;
+    await _ensureMigration(db);
+
+    return await db.transaction((txn) async {
+      // 1. Insert customer payment record
+      final map = payment.toMap()..remove('id');
+      final paymentId = await txn.insert('customer_payments', map);
+
+      // 2. If billId is attached, update the customer bill's paid_amount and status
+      if (payment.billId != null) {
+        final List<Map<String, dynamic>> bills = await txn.query(
+          'customer_bills',
+          where: 'id = ?',
+          whereArgs: [payment.billId],
+        );
+
+        if (bills.isNotEmpty) {
+          final billMap = bills.first;
+          final totalAmount = (billMap['total_amount'] as num?)?.toDouble() ?? 0.0;
+          final currentPaid = (billMap['paid_amount'] as num?)?.toDouble() ?? 0.0;
+          final newPaid = currentPaid + payment.amount;
+          final newStatus = newPaid >= totalAmount && totalAmount > 0
+              ? 'Paid'
+              : (newPaid > 0 ? 'Partial' : 'Unpaid');
+
+          await txn.update(
+            'customer_bills',
+            {
+              'paid_amount': newPaid,
+              'payment_status': newStatus,
+              'payment_date': payment.date.toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [payment.billId],
+          );
+        }
+      }
+
+      return paymentId;
+    });
+  }
+
+  Future<int> deleteCustomerPayment(int id) async {
+    final db = await database;
+    await _ensureMigration(db);
+    return await db.delete('customer_payments', where: 'id = ?', whereArgs: [id]);
   }
 }

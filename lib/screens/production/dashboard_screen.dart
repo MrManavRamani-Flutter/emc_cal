@@ -310,6 +310,8 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             if (showOverview) ...[
               _buildDetailsCardsSection(provider, currency),
               const SizedBox(height: 20),
+              _buildFactoryFinancialHealthCard(provider, currency, isDark, provider.settings.appLanguage),
+              const SizedBox(height: 20),
             ],
 
             // 4. PRODUCTION RECORDS TABLES (Sorted with highest-producing section in front & section filter)
@@ -534,6 +536,345 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           },
         ),
       ],
+    );
+  }
+
+  // --- FACTORY FINANCIAL HEALTH & PROFIT / CASH FLOW CARD ---
+  Widget _buildFactoryFinancialHealthCard(
+    ProductionProvider provider,
+    String currency,
+    bool isDark,
+    String lang,
+  ) {
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final cardBg = isDark ? AppTheme.darkCardBg : Colors.white;
+    final textPrimary = isDark ? Colors.white : AppTheme.darkNavy;
+    final textMuted = isDark ? const Color(0xFF94A3B8) : AppTheme.slateMedium;
+
+    final netProfit = provider.netFactoryProfit;
+    final netCashFlow = provider.netCashFlowBalance;
+    final customerDue = provider.totalCustomerDue;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with Title & Quick Navigation
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669).withValues(alpha: isDark ? 0.25 : 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.account_balance_rounded, color: Color(0xFF059669), size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppStrings.t(lang,
+                          en: 'Factory Financial Health & Cash Flow',
+                          gu: 'કારખાના નાણાકીય પરિસ્થિતિ & નફો હિસાબ',
+                          hi: 'कारखाना वित्तीय स्थिति एवं लाभ-हानि'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    Text(
+                      AppStrings.t(lang,
+                          en: 'Consolidated overview of customer billing, raw material payables, factory expenses and net margin',
+                          gu: 'ગ્રાહક બિલિંગ, કાચો માલ, કારખાના ખર્ચ અને ચોખ્ખો નફો સંપૂર્ણ હિસાબ',
+                          hi: 'ग्राहक बिलिंग, कच्चा माल देयता, कारखाना खर्च और शुद्ध लाभ'),
+                      style: TextStyle(fontSize: 12, color: textMuted),
+                    ),
+                  ],
+                ),
+              ),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ActionChip(
+                    avatar: const Icon(Icons.people_alt_rounded, size: 14, color: Color(0xFF6366F1)),
+                    label: Text(AppStrings.t(lang, en: 'Customers', gu: 'ગ્રાહકો', hi: 'ग्राहक'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    onPressed: () => provider.setActiveNavIndex(13),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.inventory_2_rounded, size: 14, color: Color(0xFF0284C7)),
+                    label: Text(AppStrings.t(lang, en: 'Materials', gu: 'કાચો માલ', hi: 'कच्चा माल'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    onPressed: () => provider.setActiveNavIndex(10),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.receipt_long_rounded, size: 14, color: Color(0xFFEF4444)),
+                    label: Text(AppStrings.t(lang, en: 'Expenses', gu: 'ખર્ચ', hi: 'खर्च'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    onPressed: () => provider.setActiveNavIndex(14),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          // 3 Big Highlight Tiles (Profit, Cash In-Hand, Receivables)
+          LayoutBuilder(
+            builder: (ctx, constraints) {
+              final isWide = constraints.maxWidth > 850;
+              final tile1 = _buildFinancialTile(
+                title: AppStrings.t(lang, en: 'Net Factory Profit / Margin', gu: 'ચોખ્ખો નફો / માર્જિન', hi: 'शुद्ध कारखाना लाभ'),
+                amount: netProfit,
+                currency: currency,
+                icon: Icons.trending_up_rounded,
+                isPositive: netProfit >= 0,
+                isDark: isDark,
+                subtitle: 'Revenue minus (Materials + Payroll + Expenses)',
+              );
+              final tile2 = _buildFinancialTile(
+                title: AppStrings.t(lang, en: 'Net Cash In-Hand Flow', gu: 'હાથ પર ચોખ્ખી રોકડ આવક', hi: 'शुद्ध रोकड़ प्रवाह'),
+                amount: netCashFlow,
+                currency: currency,
+                icon: Icons.payments_rounded,
+                isPositive: netCashFlow >= 0,
+                isDark: isDark,
+                subtitle: 'Cash Collected minus (Supplier Paid + Expenses)',
+              );
+              final tile3 = _buildFinancialTile(
+                title: AppStrings.t(lang, en: 'Total Customer Due (To Collect)', gu: 'ગ્રાહકો પાસેથી બાકી ઉઘરાણી', hi: 'कुल ग्राहक बकाया (वसूली)'),
+                amount: customerDue,
+                currency: currency,
+                icon: Icons.pending_actions_rounded,
+                isPositive: customerDue == 0,
+                isDark: isDark,
+                subtitle: 'Pending receivables across all customer bills',
+              );
+
+              if (isWide) {
+                return Row(
+                  children: [
+                    Expanded(child: tile1),
+                    const SizedBox(width: 14),
+                    Expanded(child: tile2),
+                    const SizedBox(width: 14),
+                    Expanded(child: tile3),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    tile1,
+                    const SizedBox(height: 12),
+                    tile2,
+                    const SizedBox(height: 12),
+                    tile3,
+                  ],
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+          Divider(height: 1, color: borderColor),
+          const SizedBox(height: 16),
+
+          // 4 Detailed Category Breakdown Cards
+          LayoutBuilder(
+            builder: (ctx, constraints) {
+              final isWide = constraints.maxWidth > 900;
+              final b1 = _buildBreakdownCard(
+                category: AppStrings.t(lang, en: 'Customer Jobwork Revenue', gu: 'ગ્રાહક જોબવર્ક આવક', hi: 'ग्राहक बिलिंग आय'),
+                primaryText: 'Billed: ₹${NumberFormat('#,##,###.00').format(provider.totalCustomerBilled)}',
+                secondaryText: 'Received: ₹${NumberFormat('#,##,###.00').format(provider.totalCustomerReceived)} • Due: ₹${NumberFormat('#,##,###.00').format(provider.totalCustomerDue)}',
+                icon: Icons.storefront_rounded,
+                accentColor: const Color(0xFF3B82F6),
+                isDark: isDark,
+              );
+              final b2 = _buildBreakdownCard(
+                category: AppStrings.t(lang, en: 'Raw Material Purchases', gu: 'કાચો માલ ખરીદી', hi: 'कच्चा माल खरीद'),
+                primaryText: 'Total: ₹${NumberFormat('#,##,###.00').format(provider.totalMaterialPurchaseAmount)}',
+                secondaryText: 'Paid: ₹${NumberFormat('#,##,###.00').format(provider.totalMaterialPaidAmount)} • Payable: ₹${NumberFormat('#,##,###.00').format(provider.totalMaterialPendingAmount)}',
+                icon: Icons.inventory_2_rounded,
+                accentColor: const Color(0xFF0284C7),
+                isDark: isDark,
+              );
+              final b3 = _buildBreakdownCard(
+                category: AppStrings.t(lang, en: 'Factory Operating Expenses', gu: 'કારખાના સામાન્ય ખર્ચ', hi: 'कारखाना सामान्य खर्च'),
+                primaryText: 'Total: ₹${NumberFormat('#,##,###.00').format(provider.totalExpensesAmount)}',
+                secondaryText: '${provider.expenses.length} Records • Light, Rent, Tea, Spares',
+                icon: Icons.receipt_long_rounded,
+                accentColor: const Color(0xFFEF4444),
+                isDark: isDark,
+              );
+              final b4 = _buildBreakdownCard(
+                category: AppStrings.t(lang, en: 'Worker Base Payroll & Advances', gu: 'કારીગર પગાર & ઉપાડ', hi: 'कारीगर वेतन एवं अग्रिम'),
+                primaryText: 'Monthly Payroll: ₹${NumberFormat('#,##,###.00').format(provider.totalMonthlyPayroll)}',
+                secondaryText: '${provider.employees.length} Workers • Pending Upad: ₹${NumberFormat('#,##,###.00').format(provider.totalPendingUpad)}',
+                icon: Icons.badge_rounded,
+                accentColor: const Color(0xFF8B5CF6),
+                isDark: isDark,
+              );
+
+              if (isWide) {
+                return Row(
+                  children: [
+                    Expanded(child: b1),
+                    const SizedBox(width: 12),
+                    Expanded(child: b2),
+                    const SizedBox(width: 12),
+                    Expanded(child: b3),
+                    const SizedBox(width: 12),
+                    Expanded(child: b4),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    Row(children: [Expanded(child: b1), const SizedBox(width: 12), Expanded(child: b2)]),
+                    const SizedBox(height: 12),
+                    Row(children: [Expanded(child: b3), const SizedBox(width: 12), Expanded(child: b4)]),
+                  ],
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFinancialTile({
+    required String title,
+    required double amount,
+    required String currency,
+    required IconData icon,
+    required bool isPositive,
+    required bool isDark,
+    required String subtitle,
+  }) {
+    final statusColor = isPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurfaceSubtle : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: statusColor.withValues(alpha: 0.4),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: statusColor, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppTheme.darkTextSecondary : const Color(0xFF475569),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '₹${NumberFormat('#,##,###.00').format(amount)}',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: statusColor,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? AppTheme.darkTextMuted : const Color(0xFF94A3B8),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBreakdownCard({
+    required String category,
+    required String primaryText,
+    required String secondaryText,
+    required IconData icon,
+    required Color accentColor,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurfaceSubtle : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: accentColor),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  category,
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: accentColor),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            primaryText,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF0F172A),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            secondaryText,
+            style: TextStyle(fontSize: 10.5, color: isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 

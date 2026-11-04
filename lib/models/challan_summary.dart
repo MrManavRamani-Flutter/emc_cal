@@ -19,11 +19,12 @@ class ChallanSummary {
   int get itemCount => items.length;
   List<String> get categories => items.map((i) => i.category).toSet().toList();
 
-  bool get isPaid => items.isNotEmpty && items.every((i) => i.isPaid);
-  bool get isPartiallyPaid => !isPaid && items.any((i) => i.isPaid);
+  double get paidAmount => items.fold(0.0, (sum, i) => sum + i.paidAmount);
+  double get pendingAmount => (totalAmount - paidAmount).clamp(0.0, double.infinity);
+
+  bool get isPaid => items.isNotEmpty && paidAmount >= totalAmount && totalAmount > 0;
+  bool get isPartiallyPaid => paidAmount > 0 && paidAmount < totalAmount;
   String get paymentStatus => isPaid ? 'Paid' : (isPartiallyPaid ? 'Partial' : 'Pending');
-  double get paidAmount => items.where((i) => i.isPaid).fold(0.0, (sum, i) => sum + i.amount);
-  double get pendingAmount => items.where((i) => !i.isPaid).fold(0.0, (sum, i) => sum + i.amount);
   DateTime? get paymentDate => items.any((i) => i.paymentDate != null)
       ? items.firstWhere((i) => i.paymentDate != null).paymentDate
       : null;

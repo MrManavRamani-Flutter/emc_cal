@@ -10,7 +10,9 @@ import 'analytics/analytics_screen.dart';
 import 'backup_restore/backup_restore_screen.dart';
 import 'production/calculation_details_screen.dart';
 import 'production/dashboard_screen.dart';
+import 'customers/customers_screen.dart';
 import 'employees/employees_screen.dart';
+import 'expenses/expenses_screen.dart';
 import 'analytics/excel_export_screen.dart';
 import 'masters/machines_screen.dart';
 import 'materials/materials_screen.dart';
@@ -368,7 +370,20 @@ class _MainLayoutState extends State<MainLayout> {
                   onTap: () => provider.setActiveNavIndex(12),
                 ),
 
-                // 4. Accounts / Khata
+                // 4. Customers & Party Khata
+                _sidebarItem(
+                  context: context,
+                  index: 13,
+                  label: AppStrings.get('customers', provider.settings.appLanguage),
+                  icon: (color) => AppSvgIcon.customers(size: 20, color: color),
+                  currentIndex: provider.activeNavIndex,
+                  accentColor: accent,
+                  isDark: isDark,
+                  badgeCount: provider.customers.length,
+                  onTap: () => provider.setActiveNavIndex(13),
+                ),
+
+                // 5. Accounts / Khata
                 _sidebarItem(
                   context: context,
                   index: 8,
@@ -380,7 +395,7 @@ class _MainLayoutState extends State<MainLayout> {
                   onTap: () => provider.setActiveNavIndex(8),
                 ),
 
-                // 5. Material Entry
+                // 6. Material Entry
                 _sidebarItem(
                   context: context,
                   index: 10,
@@ -390,6 +405,18 @@ class _MainLayoutState extends State<MainLayout> {
                   accentColor: accent,
                   isDark: isDark,
                   onTap: () => provider.setActiveNavIndex(10),
+                ),
+
+                // 7. Factory General Expenses
+                _sidebarItem(
+                  context: context,
+                  index: 14,
+                  label: AppStrings.get('expenses', provider.settings.appLanguage),
+                  icon: (color) => AppSvgIcon.expenses(size: 20, color: color),
+                  currentIndex: provider.activeNavIndex,
+                  accentColor: accent,
+                  isDark: isDark,
+                  onTap: () => provider.setActiveNavIndex(14),
                 ),
 
                 // 6. Analytics & Charts
@@ -665,6 +692,10 @@ class _MainLayoutState extends State<MainLayout> {
         return const RecycleBinScreen();
       case 12:
         return const EmployeesScreen();
+      case 13:
+        return const CustomersScreen();
+      case 14:
+        return const ExpensesScreen();
       default:
         return const DashboardScreen();
     }

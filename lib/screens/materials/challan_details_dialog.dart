@@ -133,12 +133,21 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
 
     final summary = challan.copyWith(items: liveItems);
     try {
-      await PdfExporter.printOrPreviewChallanInvoice(
+      final savedPath = await PdfExporter.exportAndOpenChallanInvoicePdf(
         challan: summary,
         companyName: 'OM MAVTAR GROUP',
         supplierPhone: supp?.phone,
         supplierCity: supp?.city,
       );
+      if (context.mounted && savedPath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF Bill opened in Preview! Saved to: $savedPath'),
+            backgroundColor: const Color(0xFF059669),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -151,61 +160,290 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
   void _showChallanPaymentStatusDialog(BuildContext context, ChallanSummary challan, List<MaterialItem> liveItems) {
     final prov = context.read<ProductionProvider>();
     final lang = prov.settings.appLanguage;
-    final isCurrentlyPaid = liveItems.isNotEmpty && liveItems.every((i) => i.isPaid);
-    final targetStatus = isCurrentlyPaid ? 'Pending' : 'Paid';
+    final isDark = AppTheme.isDark(context);
+
+    final totalBill = liveItems.fold<double>(0.0, (s, i) => s + i.amount);
+    final paidAmount = liveItems.fold<double>(0.0, (s, i) => s + i.paidAmount);
+    final remainingDue = (totalBill - paidAmount).clamp(0.0, double.infinity);
+
+    final payAmountController = TextEditingController(
+      text: remainingDue > 0 ? remainingDue.toStringAsFixed(2) : totalBill.toStringAsFixed(2),
+    );
+    String selectedMode = 'Bank / UPI';
+    DateTime paymentDate = DateTime.now();
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: Row(
-          children: [
-            Icon(
-              isCurrentlyPaid ? Icons.pending_actions_rounded : Icons.check_circle_rounded,
-              color: isCurrentlyPaid ? Colors.amber[800] : const Color(0xFF059669),
-            ),
-            const SizedBox(width: 10),
-            Text(AppStrings.t(lang,
-                en: 'Supplier Payment Status',
-                gu: 'સપ્લાયરને ચૂકવણી સ્થિતિ',
-                hi: 'सप्लायर भुगतान स्थिति')),
-          ],
-        ),
-        content: Text(
-          AppStrings.t(lang,
-              en: 'Raw material purchase bill for Challan #${challan.challanNo} from supplier "${challan.supplierName}".\n\nTotal Purchase Bill: ₹${NumberFormat('#,##,###.00').format(liveItems.fold<double>(0.0, (s, i) => s + i.amount))}\n\nUpdate payment status to "$targetStatus"?',
-              gu: 'Challan #${challan.challanNo} (વેપારી: ${challan.supplierName}) ના કાચા માલ ખરીદી બિલની ચૂકવણી સ્થિતિ "$targetStatus" તરીકે સેટ કરવી છે?\n\nકુલ ખરીદી બિલ રકમ: ₹${NumberFormat('#,##,###.00').format(liveItems.fold<double>(0.0, (s, i) => s + i.amount))}',
-              hi: 'चालान #${challan.challanNo} (सप्लायर: ${challan.supplierName}) के कच्चे माल खरीद बिल की भुगतान स्थिति "$targetStatus" सेट करनी है?\n\nकुल खरीद राशि: ₹${NumberFormat('#,##,###.00').format(liveItems.fold<double>(0.0, (s, i) => s + i.amount))}'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppStrings.t(lang, en: 'Cancel', gu: 'રદ કરો', hi: 'रद्द करें')),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              await prov.updateChallanPaymentStatus(
-                challan.challanNo,
-                challan.supplierName,
-                targetStatus,
-              );
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Challan #${challan.challanNo} marked as $targetStatus to Supplier.'),
-                    backgroundColor: isCurrentlyPaid ? Colors.amber[800] : const Color(0xFF059669),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final enteredVal = double.tryParse(payAmountController.text.trim()) ?? 0.0;
+          return AlertDialog(
+            backgroundColor: isDark ? AppTheme.darkCardBg : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isCurrentlyPaid ? Colors.amber[800] : const Color(0xFF059669),
-              foregroundColor: Colors.white,
+                  child: const Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.t(lang,
+                            en: 'Record Payment to Supplier',
+                            gu: 'સપ્લાયરને ચૂકવણી નોંધો',
+                            hi: 'सप्लायर को भुगतान दर्ज करें'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      Text(
+                        'Challan #${challan.challanNo} • ${challan.supplierName}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            child: Text(targetStatus == 'Paid' ? 'Mark as Paid to Supplier' : 'Keep as Payable / Pending'),
-          ),
-        ],
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Summary Banner
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppTheme.darkSurfaceSubtle : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppStrings.t(lang, en: 'Total Bill', gu: 'કુલ બિલ', hi: 'कुल बिल'),
+                              style: TextStyle(fontSize: 11, color: isDark ? AppTheme.darkTextMuted : const Color(0xFF64748B)),
+                            ),
+                            Text(
+                              '₹${NumberFormat('#,##,###.00').format(totalBill)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              AppStrings.t(lang, en: 'Paid So Far', gu: 'ચૂકવેલ રકમ', hi: 'अब तक भुगतान'),
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF10B981)),
+                            ),
+                            Text(
+                              '₹${NumberFormat('#,##,###.00').format(paidAmount)}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF10B981),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              AppStrings.t(lang, en: 'Remaining Due', gu: 'બાકી રકમ', hi: 'शेष बाकी'),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: remainingDue > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                              ),
+                            ),
+                            Text(
+                              '₹${NumberFormat('#,##,###.00').format(remainingDue)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: remainingDue > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Quick presets
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      if (remainingDue > 0)
+                        ActionChip(
+                          avatar: const Icon(Icons.done_all_rounded, size: 14, color: Color(0xFF10B981)),
+                          label: Text(
+                            'Full Due: ₹${remainingDue.toStringAsFixed(0)}',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () {
+                            setDialogState(() {
+                              payAmountController.text = remainingDue.toStringAsFixed(2);
+                            });
+                          },
+                        ),
+                      if (remainingDue > 0)
+                        ActionChip(
+                          avatar: const Icon(Icons.pie_chart_outline_rounded, size: 14, color: Color(0xFF3B82F6)),
+                          label: Text(
+                            '50% Half: ₹${(remainingDue / 2).toStringAsFixed(0)}',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () {
+                            setDialogState(() {
+                              payAmountController.text = (remainingDue / 2).toStringAsFixed(2);
+                            });
+                          },
+                        ),
+                      if (paidAmount > 0)
+                        ActionChip(
+                          avatar: const Icon(Icons.replay_rounded, size: 14, color: Color(0xFFEF4444)),
+                          label: const Text('Reset to ₹0', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          onPressed: () {
+                            setDialogState(() {
+                              payAmountController.text = '0.00';
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Payment Amount Input
+                  TextField(
+                    controller: payAmountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF0F172A),
+                    ),
+                    decoration: InputDecoration(
+                      labelText: AppStrings.t(lang, en: 'Payment Amount to Record (₹)', gu: 'ચૂકવણી રકમ (₹)', hi: 'भुगतान राशि (₹)'),
+                      prefixText: '₹ ',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Payment Mode Dropdown
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: selectedMode,
+                          decoration: InputDecoration(
+                            labelText: AppStrings.t(lang, en: 'Payment Mode', gu: 'ચૂકવણી માધ્યમ', hi: 'भुगतान का तरीका'),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                          items: ['Bank / UPI', 'Cash', 'Cheque', 'RTGS / NEFT']
+                              .map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 13))))
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) setDialogState(() => selectedMode = val);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: paymentDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2035),
+                          );
+                          if (picked != null) {
+                            setDialogState(() => paymentDate = picked);
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_today_rounded, size: 14),
+                        label: Text(DateFormat('dd/MM/yyyy').format(paymentDate), style: const TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(AppStrings.t(lang, en: 'Cancel', gu: 'રદ કરો', hi: 'रद्द करें')),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final payVal = double.tryParse(payAmountController.text.trim()) ?? 0.0;
+                  Navigator.of(ctx).pop();
+                  await prov.recordChallanPayment(
+                    challanNo: challan.challanNo,
+                    paymentAmount: payVal,
+                    supplierName: challan.supplierName,
+                    paymentMode: selectedMode,
+                    paymentDate: paymentDate,
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Payment of ₹${payVal.toStringAsFixed(2)} recorded for Challan #${challan.challanNo}!',
+                        ),
+                        backgroundColor: const Color(0xFF059669),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  enteredVal >= remainingDue && remainingDue > 0
+                      ? AppStrings.t(lang, en: 'Confirm Full Payment', gu: 'સંપૂર્ણ ચૂકતે કરો', hi: 'पूर्ण भुगतान दर्ज करें')
+                      : AppStrings.t(lang, en: 'Confirm Payment', gu: 'ચૂકવણી જમા કરો', hi: 'भुगतान दर्ज करें'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -449,8 +687,10 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
     }
 
     final categories = liveItems.map((m) => m.category).toSet().toList();
-    final isPaid = liveItems.isNotEmpty && liveItems.every((i) => i.isPaid);
-    final isPartiallyPaid = !isPaid && liveItems.any((i) => i.isPaid);
+    final totalBill = liveItems.fold<double>(0.0, (s, i) => s + i.amount);
+    final totalPaid = liveItems.fold<double>(0.0, (s, i) => s + i.paidAmount);
+    final isPaid = totalBill > 0 && totalPaid >= totalBill;
+    final isPartiallyPaid = totalPaid > 0 && totalPaid < totalBill;
     final lang = provider.settings.appLanguage;
 
     return Container(
@@ -1061,10 +1301,16 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
                                   decoration: BoxDecoration(
                                     color: item.isPaid
                                         ? const Color(0xFF10B981).withValues(alpha: 0.14)
-                                        : const Color(0xFFEF4444).withValues(alpha: 0.14),
+                                        : item.isPartiallyPaid
+                                            ? Colors.amber.withValues(alpha: 0.14)
+                                            : const Color(0xFFEF4444).withValues(alpha: 0.14),
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: item.isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                      color: item.isPaid
+                                          ? const Color(0xFF10B981)
+                                          : item.isPartiallyPaid
+                                              ? Colors.amber[700]!
+                                              : const Color(0xFFEF4444),
                                       width: 0.8,
                                     ),
                                   ),
@@ -1072,22 +1318,36 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
-                                        item.isPaid ? Icons.check_circle_rounded : Icons.pending_rounded,
+                                        item.isPaid
+                                            ? Icons.check_circle_rounded
+                                            : item.isPartiallyPaid
+                                                ? Icons.timelapse_rounded
+                                                : Icons.pending_rounded,
                                         size: 11,
-                                        color: item.isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                        color: item.isPaid
+                                            ? const Color(0xFF10B981)
+                                            : item.isPartiallyPaid
+                                                ? Colors.amber[800]
+                                                : const Color(0xFFEF4444),
                                       ),
                                       const SizedBox(width: 4),
                                       Flexible(
                                         child: Text(
                                           item.isPaid
                                               ? AppStrings.t(lang, en: 'Paid to Supplier', gu: 'સપ્લાયરને ચૂકતે', hi: 'सप्लायर को भुगतान')
-                                              : AppStrings.t(lang, en: 'Payable / Due', gu: 'ચૂકવવાનું બાકી', hi: 'देय / बाकी'),
+                                              : item.isPartiallyPaid
+                                                  ? 'Part: ₹${item.paidAmount.toStringAsFixed(0)}'
+                                                  : AppStrings.t(lang, en: 'Payable / Due', gu: 'ચૂકવવાનું બાકી', hi: 'देय / बाकी'),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
-                                            color: item.isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                            color: item.isPaid
+                                                ? const Color(0xFF10B981)
+                                                : item.isPartiallyPaid
+                                                    ? Colors.amber[800]
+                                                    : const Color(0xFFEF4444),
                                           ),
                                         ),
                                       ),

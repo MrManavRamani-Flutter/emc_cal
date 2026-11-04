@@ -4,6 +4,8 @@ const Map<String, String> appGuj = {
   'production': 'પ્રોડક્શન',
   'productionEntry': 'પ્રોડક્શન એન્ટ્રી',
   'materials': 'કાચો માલ ખરીદી',
+  'customers': 'ગ્રાહક અને બિલિંગ',
+  'expenses': 'ફેક્ટરી ખર્ચાઓ',
   'employees': 'કર્મચારીઓ અને ઉપાડ',
   'accounts': 'ખાતાવહી',
   'analytics': 'એનાલિટિક્સ',

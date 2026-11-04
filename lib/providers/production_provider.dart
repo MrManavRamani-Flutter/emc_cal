@@ -67,6 +67,21 @@ class ProductionProvider extends ChangeNotifier {
   String _selectedEmployeeRoleFilter = 'ALL ROLES';
   bool _employeeActiveOnlyFilter = false;
 
+  // Expenses State
+  List<ExpenseModel> _expenses = [];
+  String _selectedExpenseCategory = 'ALL';
+  DateTime? _expenseStartDate;
+  DateTime? _expenseEndDate;
+  String _expenseSearchQuery = '';
+
+  // Customers & Bills State
+  List<CustomerModel> _customers = [];
+  String _customerSearchQuery = '';
+  List<CustomerBillModel> _customerBills = [];
+  String _selectedBillStatusFilter = 'ALL';
+  String _billSearchQuery = '';
+  List<CustomerPaymentModel> _customerPayments = [];
+
   ProductionProvider() {
     init();
   }
@@ -383,6 +398,10 @@ class ProductionProvider extends ChangeNotifier {
       _employees = await _db.getEmployees();
       _employeeUpads = await _db.getEmployeeUpads();
       _whatsappLogs = await _db.getWhatsAppLogs();
+      _expenses = await _db.getExpenses();
+      _customers = await _db.getCustomers();
+      _customerBills = await _db.getCustomerBills();
+      _customerPayments = await _db.getCustomerPayments();
       _deletedRecords = await _db.getDeletedRecords();
       _archivedRecords = [];
       _settings = await _db.getSettings();
@@ -1843,6 +1862,330 @@ class ProductionProvider extends ChangeNotifier {
   Future<void> clearAllWhatsAppLogs() async {
     await _db.clearAllWhatsAppLogs();
     _whatsappLogs.clear();
+    notifyListeners();
+  }
+
+  // --- Expenses Getters & Actions ---
+  List<ExpenseModel> get expenses => _expenses;
+  String get selectedExpenseCategory => _selectedExpenseCategory;
+  DateTime? get expenseStartDate => _expenseStartDate;
+  DateTime? get expenseEndDate => _expenseEndDate;
+  String get expenseSearchQuery => _expenseSearchQuery;
+
+  List<ExpenseModel> get filteredExpenses {
+    return _expenses.where((e) {
+      if (_selectedExpenseCategory != 'ALL' && e.category.toUpperCase() != _selectedExpenseCategory.toUpperCase()) {
+        return false;
+      }
+      if (_expenseStartDate != null) {
+        final start = DateTime(_expenseStartDate!.year, _expenseStartDate!.month, _expenseStartDate!.day);
+        if (e.date.isBefore(start)) return false;
+      }
+      if (_expenseEndDate != null) {
+        final end = DateTime(_expenseEndDate!.year, _expenseEndDate!.month, _expenseEndDate!.day, 23, 59, 59);
+        if (e.date.isAfter(end)) return false;
+      }
+      if (_expenseSearchQuery.trim().isNotEmpty) {
+        final q = _expenseSearchQuery.trim().toLowerCase();
+        final matchCat = e.category.toLowerCase().contains(q);
+        final matchPaidTo = e.paidTo.toLowerCase().contains(q);
+        final matchNotes = e.notes.toLowerCase().contains(q);
+        final matchMode = e.paymentMode.toLowerCase().contains(q);
+        if (!matchCat && !matchPaidTo && !matchNotes && !matchMode) return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  double get totalExpensesAmount => _expenses.fold(0.0, (sum, e) => sum + e.amount);
+  double get todayExpensesAmount {
+    final now = DateTime.now();
+    return _expenses.where((e) => e.date.year == now.year && e.date.month == now.month && e.date.day == now.day).fold(0.0, (sum, e) => sum + e.amount);
+  }
+  double get thisMonthExpensesAmount {
+    final now = DateTime.now();
+    return _expenses.where((e) => e.date.year == now.year && e.date.month == now.month).fold(0.0, (sum, e) => sum + e.amount);
+  }
+
+  void setExpenseCategoryFilter(String category) {
+    _selectedExpenseCategory = category.trim().toUpperCase();
+    notifyListeners();
+  }
+
+  void setExpenseDateRange(DateTime? start, DateTime? end) {
+    _expenseStartDate = start;
+    _expenseEndDate = end;
+    notifyListeners();
+  }
+
+  void setExpenseSearchQuery(String query) {
+    _expenseSearchQuery = query;
+    notifyListeners();
+  }
+
+  Future<void> loadExpenses() async {
+    _expenses = await _db.getExpenses();
+    notifyListeners();
+  }
+
+  Future<void> addExpense(ExpenseModel expense) async {
+    final id = await _db.insertExpense(expense);
+    final saved = expense.copyWith(id: id);
+    _expenses.insert(0, saved);
+    notifyListeners();
+  }
+
+  Future<void> updateExpense(ExpenseModel expense) async {
+    await _db.updateExpense(expense);
+    final index = _expenses.indexWhere((e) => e.id == expense.id);
+    if (index != -1) {
+      _expenses[index] = expense;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteExpense(int id) async {
+    final existing = _expenses.firstWhere((e) => e.id == id, orElse: () => ExpenseModel(date: DateTime.now(), category: 'OTHER', amount: 0.0));
+    await _db.deleteExpense(id);
+    _expenses.removeWhere((e) => e.id == id);
+
+    // Add to recycle bin
+    if (existing.id != null) {
+      final binItem = DeletedRecordItem(
+        recordType: 'expense',
+        recordTitle: 'Expense: ${existing.category} - ₹${existing.amount.toStringAsFixed(2)}',
+        recordSubtitle: 'Paid to: ${existing.paidTo.isNotEmpty ? existing.paidTo : "N/A"} (${existing.formattedDate})',
+        originalId: existing.id,
+        originalData: jsonEncode(existing.toMap()),
+        deletedAt: DateTime.now(),
+      );
+      await _db.insertDeletedRecord(binItem);
+      _deletedRecords = await _db.getDeletedRecords();
+    }
+    notifyListeners();
+  }
+
+  // --- Customers & Bills Getters & Actions ---
+  List<CustomerModel> get customers => _customers;
+  List<CustomerModel> get activeCustomers => _customers.where((c) => c.isActive).toList();
+  String get customerSearchQuery => _customerSearchQuery;
+
+  List<CustomerModel> get filteredCustomers {
+    if (_customerSearchQuery.trim().isEmpty) return _customers;
+    final q = _customerSearchQuery.trim().toLowerCase();
+    return _customers.where((c) {
+      return c.name.toLowerCase().contains(q) ||
+          c.phone.toLowerCase().contains(q) ||
+          c.city.toLowerCase().contains(q) ||
+          c.gstNo.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  void setCustomerSearchQuery(String query) {
+    _customerSearchQuery = query;
+    notifyListeners();
+  }
+
+  Future<void> loadCustomers() async {
+    _customers = await _db.getCustomers();
+    notifyListeners();
+  }
+
+  Future<void> addCustomer(CustomerModel customer) async {
+    final id = await _db.insertCustomer(customer);
+    final saved = customer.copyWith(id: id);
+    _customers.add(saved);
+    _customers.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    notifyListeners();
+  }
+
+  Future<void> updateCustomer(CustomerModel customer) async {
+    await _db.updateCustomer(customer);
+    final index = _customers.indexWhere((c) => c.id == customer.id);
+    if (index != -1) {
+      _customers[index] = customer;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteCustomer(int id) async {
+    final existing = _customers.firstWhere((c) => c.id == id, orElse: () => CustomerModel(name: ''));
+    await _db.deleteCustomer(id);
+    _customers.removeWhere((c) => c.id == id);
+
+    if (existing.id != null) {
+      final binItem = DeletedRecordItem(
+        recordType: 'customer',
+        recordTitle: 'Customer: ${existing.name}',
+        recordSubtitle: 'Phone: ${existing.phone} | City: ${existing.city}',
+        originalId: existing.id,
+        originalData: jsonEncode(existing.toMap()),
+        deletedAt: DateTime.now(),
+      );
+      await _db.insertDeletedRecord(binItem);
+      _deletedRecords = await _db.getDeletedRecords();
+    }
+    notifyListeners();
+  }
+
+  // Customer Bills
+  List<CustomerBillModel> get customerBills => _customerBills;
+  String get selectedBillStatusFilter => _selectedBillStatusFilter;
+  String get billSearchQuery => _billSearchQuery;
+
+  List<CustomerBillModel> get filteredCustomerBills {
+    return _customerBills.where((b) {
+      if (_selectedBillStatusFilter != 'ALL') {
+        if (b.paymentStatus.toLowerCase() != _selectedBillStatusFilter.toLowerCase()) return false;
+      }
+      if (_billSearchQuery.trim().isNotEmpty) {
+        final q = _billSearchQuery.trim().toLowerCase();
+        final matchNo = b.billNo.toLowerCase().contains(q);
+        final matchCustomer = b.customerName.toLowerCase().contains(q);
+        final matchDetails = b.designDetails.toLowerCase().contains(q);
+        final matchNotes = b.notes.toLowerCase().contains(q);
+        if (!matchNo && !matchCustomer && !matchDetails && !matchNotes) return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  void setBillStatusFilter(String status) {
+    _selectedBillStatusFilter = status.trim().toUpperCase();
+    notifyListeners();
+  }
+
+  void setBillSearchQuery(String query) {
+    _billSearchQuery = query;
+    notifyListeners();
+  }
+
+  Future<void> loadCustomerBills() async {
+    _customerBills = await _db.getCustomerBills();
+    notifyListeners();
+  }
+
+  Future<void> addCustomerBill(CustomerBillModel bill) async {
+    final id = await _db.insertCustomerBill(bill);
+    final saved = bill.copyWith(id: id);
+    _customerBills.insert(0, saved);
+    notifyListeners();
+  }
+
+  Future<void> updateCustomerBill(CustomerBillModel bill) async {
+    await _db.updateCustomerBill(bill);
+    final index = _customerBills.indexWhere((b) => b.id == bill.id);
+    if (index != -1) {
+      _customerBills[index] = bill;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteCustomerBill(int id) async {
+    final existing = _customerBills.firstWhere((b) => b.id == id, orElse: () => CustomerBillModel(billNo: '', customerName: '', date: DateTime.now(), totalAmount: 0.0));
+    await _db.deleteCustomerBill(id);
+    _customerBills.removeWhere((b) => b.id == id);
+
+    if (existing.id != null) {
+      final binItem = DeletedRecordItem(
+        recordType: 'customer_bill',
+        recordTitle: 'Bill #${existing.billNo} (${existing.customerName})',
+        recordSubtitle: 'Amount: ₹${existing.totalAmount.toStringAsFixed(2)} | Status: ${existing.paymentStatus}',
+        originalId: existing.id,
+        originalData: jsonEncode(existing.toMap()),
+        deletedAt: DateTime.now(),
+      );
+      await _db.insertDeletedRecord(binItem);
+      _deletedRecords = await _db.getDeletedRecords();
+    }
+    notifyListeners();
+  }
+
+  // Customer Payments
+  List<CustomerPaymentModel> get customerPayments => _customerPayments;
+
+  Future<void> loadCustomerPayments() async {
+    _customerPayments = await _db.getCustomerPayments();
+    notifyListeners();
+  }
+
+  Future<void> recordCustomerPayment(CustomerPaymentModel payment) async {
+    final id = await _db.recordCustomerPayment(payment);
+    final saved = payment.copyWith(id: id);
+    _customerPayments.insert(0, saved);
+    _customerBills = await _db.getCustomerBills();
+    notifyListeners();
+  }
+
+  Future<void> deleteCustomerPayment(int id) async {
+    await _db.deleteCustomerPayment(id);
+    _customerPayments.removeWhere((p) => p.id == id);
+    _customerBills = await _db.getCustomerBills();
+    notifyListeners();
+  }
+
+  // Aggregate Customer Financials
+  double get totalCustomerBilled => _customerBills.fold(0.0, (sum, b) => sum + b.totalAmount);
+  double get totalCustomerReceived => _customerBills.fold(0.0, (sum, b) => sum + b.paidAmount);
+  double get totalCustomerDue => _customerBills.fold(0.0, (sum, b) => sum + b.remainingAmount);
+
+  double getCustomerTotalBilled(int? customerId, String customerName) {
+    return _customerBills
+        .where((b) => (customerId != null && b.customerId == customerId) || b.customerName.toLowerCase() == customerName.toLowerCase())
+        .fold(0.0, (sum, b) => sum + b.totalAmount);
+  }
+
+  double getCustomerTotalReceived(int? customerId, String customerName) {
+    return _customerBills
+        .where((b) => (customerId != null && b.customerId == customerId) || b.customerName.toLowerCase() == customerName.toLowerCase())
+        .fold(0.0, (sum, b) => sum + b.paidAmount);
+  }
+
+  double getCustomerTotalDue(int? customerId, String customerName) {
+    return (getCustomerTotalBilled(customerId, customerName) - getCustomerTotalReceived(customerId, customerName)).clamp(0.0, double.infinity);
+  }
+
+  // Unified Income vs Expense Financials
+  double get totalProductionIncome => _records.fold(0.0, (sum, r) => sum + r.finalAmount);
+  double get totalMaterialPurchasesValue => _materials.fold(0.0, (sum, m) => sum + m.amount);
+  double get totalMaterialPaidToSuppliers => _materials.fold(0.0, (sum, m) => sum + m.paidAmount);
+  double get totalMaterialDueToSuppliers => (totalMaterialPurchasesValue - totalMaterialPaidToSuppliers).clamp(0.0, double.infinity);
+
+  double get totalMaterialPurchaseAmount => totalMaterialPurchasesValue;
+  double get totalMaterialPaidAmount => totalMaterialPaidToSuppliers;
+  double get totalMaterialPendingAmount => totalMaterialDueToSuppliers;
+
+  double get totalEmployeesMonthlySalary => _employees.fold(0.0, (sum, e) => sum + e.monthlySalary);
+  double get totalEmployeesPendingUpad => _employeeUpads.where((u) => !u.isSettled).fold(0.0, (sum, u) => sum + u.amount);
+  double get totalFactoryOverheadExpenses => totalExpensesAmount;
+
+  /// Net Profit = Production Stitch Income - (Material Purchases + Monthly Payroll + Factory Expenses)
+  double get netFactoryProfit => totalProductionIncome - (totalMaterialPurchasesValue + totalEmployeesMonthlySalary + totalFactoryOverheadExpenses);
+
+  /// Net Cash in Hand = (Customer Cash Received) - (Material Cash Paid + Upads Paid + Factory Expenses Paid)
+  double get netCashFlowBalance => totalCustomerReceived - (totalMaterialPaidToSuppliers + totalEmployeesPendingUpad + totalFactoryOverheadExpenses);
+
+  // --- Material Challan Partial & Full Payment Action ---
+  Future<void> recordChallanPayment({
+    required String challanNo,
+    required double paymentAmount,
+    String? supplierName,
+    String? paymentMode,
+    DateTime? paymentDate,
+    String? notes,
+  }) async {
+    final effectiveNotes = [
+      if (paymentMode != null && paymentMode.isNotEmpty) 'Mode: $paymentMode',
+      if (notes != null && notes.isNotEmpty) notes,
+    ].join(' • ');
+
+    await _db.recordChallanPayment(
+      challanNo: challanNo,
+      paymentAmount: paymentAmount,
+      paymentDate: paymentDate,
+      notes: effectiveNotes.isNotEmpty ? effectiveNotes : null,
+    );
+    _materials = await _db.getMaterialItems();
     notifyListeners();
   }
 }
