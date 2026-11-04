@@ -158,16 +158,16 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
             ),
             const SizedBox(width: 10),
             Text(AppStrings.t(lang,
-                en: 'Update Payment Status',
-                gu: 'ચૂકવણી સ્થિતિ અપડેટ કરો',
-                hi: 'भुगतान स्थिति अपडेट करें')),
+                en: 'Supplier Payment Status',
+                gu: 'સપ્લાયરને ચૂકવણી સ્થિતિ',
+                hi: 'सप्लायर भुगतान स्थिति')),
           ],
         ),
         content: Text(
           AppStrings.t(lang,
-              en: 'Set payment status of all ${liveItems.length} items in Challan #${challan.challanNo} to "$targetStatus"?\n\nTotal Amount: ₹${NumberFormat('#,##,###.00').format(liveItems.fold<double>(0.0, (s, i) => s + i.amount))}',
-              gu: 'Challan #${challan.challanNo} ના તમામ ${liveItems.length} આઇટમ્સની ચૂકવણી સ્થિતિ "$targetStatus" તરીકે સેટ કરવી છે?\n\nકુલ રકમ: ₹${NumberFormat('#,##,###.00').format(liveItems.fold<double>(0.0, (s, i) => s + i.amount))}',
-              hi: 'क्या चालान #${challan.challanNo} की सभी ${liveItems.length} वस्तुओं की भुगतान स्थिति "$targetStatus" सेट करनी है?\n\nकुल राशि: ₹${NumberFormat('#,##,###.00').format(liveItems.fold<double>(0.0, (s, i) => s + i.amount))}'),
+              en: 'Raw material purchase bill for Challan #${challan.challanNo} from supplier "${challan.supplierName}".\n\nTotal Purchase Bill: ₹${NumberFormat('#,##,###.00').format(liveItems.fold<double>(0.0, (s, i) => s + i.amount))}\n\nUpdate payment status to "$targetStatus"?',
+              gu: 'Challan #${challan.challanNo} (વેપારી: ${challan.supplierName}) ના કાચા માલ ખરીદી બિલની ચૂકવણી સ્થિતિ "$targetStatus" તરીકે સેટ કરવી છે?\n\nકુલ ખરીદી બિલ રકમ: ₹${NumberFormat('#,##,###.00').format(liveItems.fold<double>(0.0, (s, i) => s + i.amount))}',
+              hi: 'चालान #${challan.challanNo} (सप्लायर: ${challan.supplierName}) के कच्चे माल खरीद बिल की भुगतान स्थिति "$targetStatus" सेट करनी है?\n\nकुल खरीद राशि: ₹${NumberFormat('#,##,###.00').format(liveItems.fold<double>(0.0, (s, i) => s + i.amount))}'),
         ),
         actions: [
           TextButton(
@@ -185,7 +185,7 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Challan #${challan.challanNo} marked as $targetStatus'),
+                    content: Text('Challan #${challan.challanNo} marked as $targetStatus to Supplier.'),
                     backgroundColor: isCurrentlyPaid ? Colors.amber[800] : const Color(0xFF059669),
                   ),
                 );
@@ -195,7 +195,7 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
               backgroundColor: isCurrentlyPaid ? Colors.amber[800] : const Color(0xFF059669),
               foregroundColor: Colors.white,
             ),
-            child: Text('Mark as $targetStatus'),
+            child: Text(targetStatus == 'Paid' ? 'Mark as Paid to Supplier' : 'Keep as Payable / Pending'),
           ),
         ],
       ),
@@ -342,9 +342,9 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
             children: [
               Text(
                 AppStrings.t(lang,
-                    en: 'Challan Calculation Statement',
-                    gu: 'ચલાન ગણતરી અને હિસાબ',
-                    hi: 'चालान गणना और विवरण'),
+                    en: 'Material Purchase Challan & Calculation Statement',
+                    gu: 'કાચો માલ ખરીદી ચલણ અને હિસાબ',
+                    hi: 'कच्चा माल खरीद चालान एवं गणना विवरण'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -384,7 +384,7 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Party: ${challan.supplierName} • Date: ${DateFormat('dd MMMM yyyy').format(challan.date)} • ${liveItems.length} Products registered',
+                      'Supplier / Vendor: ${challan.supplierName} • Date: ${DateFormat('dd MMMM yyyy').format(challan.date)} • Company Purchase Inward (${liveItems.length} Products)',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 12, color: AppTheme.textMuted(context)),
@@ -481,9 +481,9 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
                     children: [
                       Text(
                         AppStrings.t(lang,
-                            en: 'PARTY / SUPPLIER',
-                            gu: 'વેપારી / સપ્લાયર',
-                            hi: 'व्यापारी / आपूर्तिकर्ता'),
+                            en: 'SUPPLIER / VENDOR (RAW MATERIAL)',
+                            gu: 'વેપારી (કાચો માલ આપનાર)',
+                            hi: 'सप्लायर (कच्चा माल आपूर्तिकर्ता)'),
                         style: TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,
@@ -666,9 +666,9 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
               children: [
                 Text(
                   AppStrings.t(lang,
-                      en: 'PAYMENT STATUS',
-                      gu: 'ચૂકવણી સ્થિતિ',
-                      hi: 'भुगतान स्थिति'),
+                      en: 'PAYMENT TO SUPPLIER',
+                      gu: 'સપ્લાયરને ચૂકવણી',
+                      hi: 'सप्लायर को भुगतान'),
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
@@ -717,12 +717,12 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
                         const SizedBox(width: 5),
                         Text(
                           isPaid
-                              ? AppStrings.t(lang, en: 'Paid', gu: 'ચૂકતે', hi: 'भुगतान किया')
+                              ? AppStrings.t(lang, en: 'Paid to Supplier', gu: 'સપ્લાયરને ચૂકતે', hi: 'सप्लायर को भुगतान')
                               : isPartiallyPaid
-                                  ? AppStrings.t(lang, en: 'Partial', gu: 'અંશતઃ', hi: 'आंशिक')
-                                  : AppStrings.t(lang, en: 'Pending', gu: 'બાકી', hi: 'लंबित'),
+                                  ? AppStrings.t(lang, en: 'Partial Paid', gu: 'અંશતઃ ચૂકતે', hi: 'आंशिक भुगतान')
+                                  : AppStrings.t(lang, en: 'Payable to Supplier', gu: 'ચૂકવવાનું બાકી', hi: 'सप्लायर को देय बाकी'),
                           style: TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 11,
                             fontWeight: FontWeight.w800,
                             color: isPaid
                                 ? const Color(0xFF10B981)
@@ -895,11 +895,11 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text(AppStrings.t(lang, en: 'Total Amount (₹)', gu: 'કુલ રકમ (₹)', hi: 'कुल राशि (₹)'), style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
+                  child: Text(AppStrings.t(lang, en: 'Purchase Bill (₹)', gu: 'ખરીદી રકમ (₹)', hi: 'खरीद राशि (₹)'), style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text(AppStrings.t(lang, en: 'Payment', gu: 'ચૂકવણી', hi: 'भुगतान'), style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
+                  child: Text(AppStrings.t(lang, en: 'Payment to Supplier', gu: 'સપ્લાયરને ચૂકવણી', hi: 'सप्लायर को भुगतान'), style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
                 ),
                 Expanded(
                   flex: 2,
@@ -1069,12 +1069,18 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
                                         color: item.isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                                       ),
                                       const SizedBox(width: 4),
-                                      Text(
-                                        item.isPaid ? 'Paid' : 'Pending',
-                                        style: TextStyle(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.bold,
-                                          color: item.isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                      Flexible(
+                                        child: Text(
+                                          item.isPaid
+                                              ? AppStrings.t(lang, en: 'Paid to Supplier', gu: 'સપ્લાયરને ચૂકતે', hi: 'सप्लायर को भुगतान')
+                                              : AppStrings.t(lang, en: 'Payable / Due', gu: 'ચૂકવવાનું બાકી', hi: 'देय / बाकी'),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: item.isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1317,9 +1323,9 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
                   children: [
                     Text(
                       AppStrings.t(lang,
-                          en: 'Challan Final Amount',
-                          gu: 'ચૂકવવાપાત્ર રકમ',
-                          hi: 'चालान अंतिम राशि'),
+                          en: 'Total Purchase Bill Payable to Supplier',
+                          gu: 'સપ્લાયરને ચૂકવવાપાત્ર કુલ ખરીદી રકમ',
+                          hi: 'सप्लायर को देय कुल खरीद राशि'),
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
@@ -1359,11 +1365,14 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Real-time Offline SQLite Calculation Engine',
+                  AppStrings.t(lang,
+                    en: 'Company owes this bill amount to supplier "${challan.supplierName}"',
+                    gu: 'કંપની દ્વારા વેપારી "${challan.supplierName}" ને આ ખરીદી બિલ રકમ ચૂકવવાની રહે છે',
+                    hi: 'कंपनी द्वारा सप्लायर "${challan.supplierName}" को यह खरीद बिल राशि देय है'),
                   style: TextStyle(
                     fontSize: 10.5,
                     color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF15803D),
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],

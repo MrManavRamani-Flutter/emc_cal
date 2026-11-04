@@ -477,8 +477,8 @@ class _AddEditMaterialDialogState extends State<AddEditMaterialDialog> {
                         children: [
                           Text(
                             isEditing
-                                ? AppStrings.t(lang, en: 'Edit Material Entry', gu: 'મટીરીયલ એડિટ', hi: 'सामग्री प्रविष्टि संपादित करें')
-                                : AppStrings.t(lang, en: 'Challan Entry', gu: 'ચલાન બિલ એન્ટ્રી', hi: 'चालान बिल प्रविष्टि'),
+                                ? AppStrings.t(lang, en: 'Edit Purchase Material Entry', gu: 'ખરીદી મટીરીયલ એડિટ', hi: 'खरीद सामग्री प्रविष्टि संपादित करें')
+                                : AppStrings.t(lang, en: 'Raw Material Purchase Challan Entry', gu: 'નવું કાચો માલ ખરીદી ચલણ બિલ', hi: 'कच्चा माल खरीद चालान बिल'),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -486,7 +486,10 @@ class _AddEditMaterialDialogState extends State<AddEditMaterialDialog> {
                             ),
                           ),
                           Text(
-                            'One supplier challan with multiple items and live total bill calculation',
+                            AppStrings.t(lang,
+                              en: 'Raw materials purchased from supplier • Company will pay this bill to vendor',
+                              gu: 'વેપારી પાસેથી ખરીદેલ કાચા માલની એન્ટ્રી • કંપની દ્વારા સપ્લાયરને ચૂકવવાપાત્ર બિલ',
+                              hi: 'सप्लायर से खरीदे गए कच्चे माल की प्रविष्टि • कंपनी द्वारा सप्लायर को देय बिल'),
                             style: TextStyle(fontSize: 11.5, color: AppTheme.textMuted(context)),
                           ),
                         ],
@@ -552,8 +555,8 @@ class _AddEditMaterialDialogState extends State<AddEditMaterialDialog> {
             children: [
               Text(
                 isEditing
-                    ? AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Edit Material Entry', gu: 'મટીરીયલ એડિટ', hi: 'सामग्री प्रविष्टि संपादित करें')
-                    : AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'New Challan & Multi-Product Bill Entry', gu: 'નવું ચલાન બિલ', hi: 'नया चालान बिल प्रविष्टि'),
+                    ? AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Edit Purchase Material Entry', gu: 'ખરીદી મટીરીયલ એડિટ', hi: 'खरीद सामग्री प्रविष्टि संपादित करें')
+                    : AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'New Material Purchase Challan & Inward Bill', gu: 'નવું કાચો માલ ખરીદી ચલણ બિલ', hi: 'नया कच्चा माल खरीद चालान बिल'),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -564,7 +567,10 @@ class _AddEditMaterialDialogState extends State<AddEditMaterialDialog> {
               ),
               const SizedBox(height: 2),
               Text(
-                AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Challan Details & Multi-Product Billing • One Supplier, Multiple Items with Live Total Bill', gu: 'ચલાન વિગત અને મલ્ટી-પ્રોડક્ટ બિલિંગ', hi: 'चालान विवरण एवं मल्टी-प्रोडक्ट बिलिंग'),
+                AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage,
+                  en: 'Raw materials purchased from supplier (Dhaga, Sequence, Beads) • Multi-product purchase bill payable to vendor',
+                  gu: 'સપ્લાયર પાસેથી કાચા માલની ખરીદી (દોરા, સીક્વન્સ, મોતી) • વેપારીને ચૂકવવાપાત્ર ખરીદી બિલ',
+                  hi: 'सप्लायर से कच्चा माल खरीद (धागा, सीक्वेंस, मोती) • सप्लायर को देय खरीद बिल'),
                 style: TextStyle(fontSize: 12, color: AppTheme.textMuted(context)),
               ),
             ],
@@ -583,7 +589,10 @@ class _AddEditMaterialDialogState extends State<AddEditMaterialDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Total Bill: ',
+                AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage,
+                  en: 'Purchase Bill: ',
+                  gu: 'કુલ ખરીદી બિલ: ',
+                  hi: 'कुल खरीद बिल: '),
                 style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.textMuted(context)),
               ),
               Text(
@@ -611,8 +620,8 @@ class _AddEditMaterialDialogState extends State<AddEditMaterialDialog> {
           onPressed: _submit,
           icon: const Icon(Icons.check_circle_rounded, size: 18),
           label: Text(isEditing
-              ? AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Update Entry', gu: 'અપડેટ કરો', hi: 'अपडेट करें')
-              : AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Save Challan Bill', gu: 'ચલાન બિલ સાચવો', hi: 'चालान बिल सहेजें')),
+              ? AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Update Purchase Challan', gu: 'ખરીદી ચલણ અપડેટ', hi: 'खरीद चालान अपडेट करें')
+              : AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Save Purchase Challan', gu: 'ખરીદી ચલણ સાચવો', hi: 'खरीद चालान सहेजें')),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.successGreenDark,
             foregroundColor: Colors.white,
@@ -1425,7 +1434,10 @@ class _AddEditMaterialDialogState extends State<AddEditMaterialDialog> {
                   runSpacing: 4,
                   children: [
                     Text(
-                      AppStrings.get('totalChallanBill', context.read<ProductionProvider>().settings.appLanguage),
+                      AppStrings.t(context.read<ProductionProvider>().settings.appLanguage,
+                        en: 'PURCHASE BILL PAYABLE TO SUPPLIER',
+                        gu: 'સપ્લાયરને ચૂકવવાપાત્ર કુલ ખરીદી બિલ',
+                        hi: 'सप्लायर को देय कुल खरीद बिल'),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -1456,6 +1468,18 @@ class _AddEditMaterialDialogState extends State<AddEditMaterialDialog> {
                     letterSpacing: -0.6,
                   ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  AppStrings.t(context.read<ProductionProvider>().settings.appLanguage,
+                    en: 'Raw material purchase bill payable by OM MAVTAR GROUP to supplier',
+                    gu: 'કંપની દ્વારા વેપારીને ચૂકવવાપાત્ર કાચા માલનું ખરીદી બિલ',
+                    hi: 'कच्चे माल का खरीद बिल जो कंपनी द्वारा सप्लायर को देय है'),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white60 : const Color(0xFF15803D),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1476,8 +1500,8 @@ class _AddEditMaterialDialogState extends State<AddEditMaterialDialog> {
             icon: const Icon(Icons.check_circle_rounded, size: 20),
             label: Text(
               isEditing
-                  ? AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Update Challan', gu: 'ચલાન અપડેટ કરો', hi: 'चालान अपडेट करें')
-                  : AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Save Challan Bill', gu: 'ચલાન બિલ સાચવો', hi: 'चालान बिल सहेजें'),
+                  ? AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Update Purchase Challan', gu: 'ખરીદી ચલણ અપડેટ', hi: 'खरीद चालान अपडेट करें')
+                  : AppStrings.t(context.watch<ProductionProvider>().settings.appLanguage, en: 'Save Purchase Challan', gu: 'ખરીદી ચલણ સાચવો', hi: 'खरीद चालान सहेजें'),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
             ),
             style: ElevatedButton.styleFrom(

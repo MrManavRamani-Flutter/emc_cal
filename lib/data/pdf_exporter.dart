@@ -62,7 +62,7 @@ class PdfExporter {
                       ),
                       pw.SizedBox(height: 2),
                       pw.Text(
-                        'Track • Calculate • Manage • Grow',
+                        'Buyer / Purchaser: ${(companyName ?? 'OM MAVTAR GROUP')}',
                         style: const pw.TextStyle(
                           fontSize: 8.5,
                           color: PdfColors.blueGrey200,
@@ -74,10 +74,10 @@ class PdfExporter {
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
                       pw.Text(
-                        'SUPPLIER ORDER STATEMENT',
+                        'RAW MATERIAL PURCHASES & PAYMENT LEDGER',
                         style: pw.TextStyle(
                           font: fontBold,
-                          fontSize: 12,
+                          fontSize: 10.5,
                           color: PdfColors.amber300,
                           fontWeight: pw.FontWeight.bold,
                         ),
@@ -178,7 +178,7 @@ class PdfExporter {
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('Paid Amount (Chukte)', style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.green800)),
+                        pw.Text('Paid to Supplier (Chukte)', style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.green800)),
                         pw.SizedBox(height: 3),
                         pw.Text(
                           'Rs. ${NumberFormat("#,##,###.00").format(paidAmount)}',
@@ -201,7 +201,7 @@ class PdfExporter {
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('Pending Due (Baki)', style: pw.TextStyle(fontSize: 8.5, color: pendingAmount > 0 ? PdfColors.red800 : PdfColors.grey700)),
+                        pw.Text('Payable Due to Supplier (Baki)', style: pw.TextStyle(fontSize: 8.5, color: pendingAmount > 0 ? PdfColors.red800 : PdfColors.grey700)),
                         pw.SizedBox(height: 3),
                         pw.Text(
                           'Rs. ${NumberFormat("#,##,###.00").format(pendingAmount)}',
@@ -358,15 +358,15 @@ class PdfExporter {
                           style: pw.TextStyle(font: fontBold, fontSize: 16, color: PdfColors.white),
                         ),
                         pw.SizedBox(height: 2),
-                        pw.Text('Material Inward Challan Bill', style: const pw.TextStyle(fontSize: 9, color: PdfColors.blueGrey200)),
+                        pw.Text('Raw Material Purchase Inward Challan Bill (Buyer Copy)', style: const pw.TextStyle(fontSize: 9, color: PdfColors.blueGrey200)),
                       ],
                     ),
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text('CHALLAN #${challan.challanNo}', style: pw.TextStyle(font: fontBold, fontSize: 13, color: PdfColors.amber300)),
+                        pw.Text('PURCHASE CHALLAN #${challan.challanNo}', style: pw.TextStyle(font: fontBold, fontSize: 13, color: PdfColors.amber300)),
                         pw.SizedBox(height: 2),
-                        pw.Text('Date: ${challan.formattedDate}', style: const pw.TextStyle(fontSize: 9, color: PdfColors.white)),
+                        pw.Text('Inward Date: ${challan.formattedDate}', style: const pw.TextStyle(fontSize: 9, color: PdfColors.white)),
                       ],
                     ),
                   ],
@@ -388,7 +388,7 @@ class PdfExporter {
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('SUPPLIER / PARTY:', style: pw.TextStyle(font: fontBold, fontSize: 8.5, color: PdfColors.grey700)),
+                        pw.Text('SUPPLIER / VENDOR (SELLER):', style: pw.TextStyle(font: fontBold, fontSize: 8.5, color: PdfColors.grey700)),
                         pw.SizedBox(height: 2),
                         pw.Text(challan.supplierName.isEmpty ? '—' : challan.supplierName, style: pw.TextStyle(font: fontBold, fontSize: 12.5)),
                         if (supplierPhone != null && supplierPhone.isNotEmpty) ...[
@@ -400,7 +400,7 @@ class PdfExporter {
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text('Payment Status: ${challan.paymentStatus.toUpperCase()}',
+                        pw.Text('Payment to Supplier: ${challan.isPaid ? "PAID TO SUPPLIER" : "PAYABLE / DUE"}',
                             style: pw.TextStyle(
                               font: fontBold,
                               fontSize: 10,
@@ -417,7 +417,7 @@ class PdfExporter {
 
               // Items Table
               pw.TableHelper.fromTextArray(
-                headers: ['#', 'Category', 'Product Name', 'Form', 'MM', 'Meters', 'Qty', 'Rate (Rs)', 'Total (Rs)'],
+                headers: ['#', 'Category', 'Product Name', 'Form', 'MM', 'Meters', 'Purchased Qty', 'Rate (Rs)', 'Purchase Amount (Rs)'],
                 data: List<List<dynamic>>.generate(challan.items.length, (index) {
                   final item = challan.items[index];
                   return [
@@ -463,7 +463,7 @@ class PdfExporter {
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('TOTAL BILL AMOUNT', style: pw.TextStyle(font: fontBold, fontSize: 10)),
+                    pw.Text('TOTAL PURCHASE BILL PAYABLE TO SUPPLIER', style: pw.TextStyle(font: fontBold, fontSize: 10)),
                     pw.Text(
                       'Rs. ${NumberFormat("#,##,###.00").format(challan.totalAmount)}',
                       style: pw.TextStyle(font: fontBold, fontSize: 13, color: PdfColors.blueGrey900),
@@ -480,17 +480,17 @@ class PdfExporter {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Container(width: 120, height: 1, color: PdfColors.grey400),
+                      pw.Container(width: 130, height: 1, color: PdfColors.grey400),
                       pw.SizedBox(height: 4),
-                      pw.Text('Receiver Signature', style: const pw.TextStyle(fontSize: 8)),
+                      pw.Text('Buyer Signature (OM MAVTAR GROUP)', style: const pw.TextStyle(fontSize: 8)),
                     ],
                   ),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Container(width: 120, height: 1, color: PdfColors.grey400),
+                      pw.Container(width: 130, height: 1, color: PdfColors.grey400),
                       pw.SizedBox(height: 4),
-                      pw.Text('Authorized Signatory', style: const pw.TextStyle(fontSize: 8)),
+                      pw.Text('Supplier / Vendor Stamp & Sign', style: const pw.TextStyle(fontSize: 8)),
                     ],
                   ),
                 ],

@@ -272,6 +272,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
   void _showPaymentStatusToggleDialog(BuildContext context, ChallanSummary ch) {
     final provider = context.read<ProductionProvider>();
     final isCurrentlyPaid = ch.isPaid;
+    final lang = provider.settings.appLanguage;
 
     showDialog(
       context: context,
@@ -282,17 +283,49 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
             children: [
               const Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 22),
               const SizedBox(width: 8),
-              Flexible(child: Text('Challan #${ch.challanNo} Payment')),
+              Flexible(
+                child: Text(AppStrings.t(lang,
+                  en: 'Challan #${ch.challanNo} Supplier Payment',
+                  gu: 'ચલણ #${ch.challanNo} સપ્લાયરને ચૂકવણી',
+                  hi: 'चालान #${ch.challanNo} सप्लायर भुगतान')),
+              ),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Party: ${ch.supplierName}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              const SizedBox(height: 4),
-              Text('Total Bill: ₹ ${NumberFormat("#,##,###.00").format(ch.totalAmount)}', style: const TextStyle(fontSize: 13)),
-              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceSubtle(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border(context)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${AppStrings.t(lang, en: "Supplier / Vendor (માલ આપનાર વેપારી)", gu: "વેપારી (માલ આપનાર)", hi: "सप्लायर (सामग्री आपूर्तिकर्ता)")}: ${ch.supplierName}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${AppStrings.t(lang, en: "Total Purchase Bill (કુલ ખરીદી બિલ)", gu: "કુલ ખરીદી બિલ", hi: "कुल खरीद बिल")}: ₹ ${NumberFormat("#,##,###.00").format(ch.totalAmount)}',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF2563EB)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      AppStrings.t(lang,
+                        en: 'Note: OM MAVTAR GROUP purchases material from this supplier and pays this bill amount.',
+                        gu: 'નોંધ: કંપની આ વેપારી પાસેથી કાચો માલ ખરીદે છે અને આ રકમ વેપારીને ચૂકવવાની થાય છે.',
+                        hi: 'नोट: कंपनी इस सप्लायर से कच्चा माल खरीदती है और यह बिल सप्लायर को भुगतान करना होता है।'),
+                      style: TextStyle(fontSize: 11, color: AppTheme.textMuted(context)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
@@ -305,14 +338,20 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                     Icon(isCurrentlyPaid ? Icons.check_circle : Icons.pending, size: 14, color: isCurrentlyPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                     const SizedBox(width: 6),
                     Text(
-                      'Current Status: ${isCurrentlyPaid ? AppStrings.t(provider.settings.appLanguage, en: "Paid", gu: "ચૂકતે થયેલ", hi: "भुगतान किया") : AppStrings.t(provider.settings.appLanguage, en: "Pending", gu: "બાકી", hi: "लंबित")}',
+                      'Current Status: ${isCurrentlyPaid ? AppStrings.t(lang, en: "Paid to Supplier (સપ્લાયરને ચૂકતે)", gu: "સપ્લાયરને ચૂકતે થયેલ", hi: "सप्लायर को भुगतान किया") : AppStrings.t(lang, en: "Payable to Supplier / Due (સપ્લાયરને ચૂકવવાનું બાકી)", gu: "સપ્લાયરને ચૂકવવાનું બાકી", hi: "सप्लायर को देय बाकी")}',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isCurrentlyPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 14),
-              const Text('Update payment status for this challan:', style: TextStyle(fontSize: 12)),
+              Text(
+                AppStrings.t(lang,
+                  en: 'Update payment made to supplier for this purchase challan:',
+                  gu: 'આ ખરીદી ચલણ માટે સપ્લાયરને ચૂકવણી સ્થિતિ અપડેટ કરો:',
+                  hi: 'इस खरीद चालान के लिए सप्लायर भुगतान स्थिति अपडेट करें:'),
+                style: const TextStyle(fontSize: 12),
+              ),
             ],
           ),
           actions: [
@@ -323,7 +362,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
             if (!isCurrentlyPaid)
               ElevatedButton.icon(
                 icon: const Icon(Icons.check_circle_outline, size: 16),
-                label: Text(AppStrings.t(provider.settings.appLanguage, en: 'Mark as Paid', gu: 'ચૂકતે કરો', hi: 'भुगतान चिह्नित करें')),
+                label: Text(AppStrings.t(lang, en: 'Mark as Paid to Supplier', gu: 'સપ્લાયરને ચૂકવી દીધું (Paid)', hi: 'सप्लायर को भुगतान किया चिह्नित करें')),
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white),
                 onPressed: () async {
                   Navigator.of(ctx).pop();
@@ -331,7 +370,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Challan #${ch.challanNo} marked as Paid.'),
+                        content: Text('Challan #${ch.challanNo} marked as Paid to Supplier.'),
                         backgroundColor: const Color(0xFF10B981),
                       ),
                     );
@@ -341,7 +380,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
             if (isCurrentlyPaid)
               ElevatedButton.icon(
                 icon: const Icon(Icons.timelapse, size: 16),
-                label: Text(AppStrings.t(provider.settings.appLanguage, en: 'Mark as Pending', gu: 'બાકી રાખો', hi: 'लंबित रखें')),
+                label: Text(AppStrings.t(lang, en: 'Keep as Payable / Pending', gu: 'સપ્લાયરને ચૂકવવાનું બાકી રાખો', hi: 'सप्लायर को देय बाकी रखें')),
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
                 onPressed: () async {
                   Navigator.of(ctx).pop();
@@ -349,7 +388,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Challan #${ch.challanNo} marked as Pending.'),
+                        content: Text('Challan #${ch.challanNo} marked as Payable / Pending.'),
                         backgroundColor: const Color(0xFFEF4444),
                       ),
                     );
@@ -378,7 +417,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
             children: [
               const Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 22),
               const SizedBox(width: 8),
-              Flexible(child: Text('Item #${item.id} Payment')),
+              Flexible(child: Text('Item #${item.id} Supplier Payment')),
             ],
           ),
           content: Column(
@@ -387,9 +426,9 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
             children: [
               Text('${item.productName} (${AppStrings.categoryName(item.category, lang)})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 4),
-              Text('Party: ${item.supplierName} • Challan #${item.challanNo}', style: const TextStyle(fontSize: 12)),
+              Text('Supplier / Vendor: ${item.supplierName} • Challan #${item.challanNo}', style: const TextStyle(fontSize: 12)),
               const SizedBox(height: 4),
-              Text('Amount: ₹ ${NumberFormat("#,##,###.00").format(item.amount)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              Text('Purchase Bill Amount: ₹ ${NumberFormat("#,##,###.00").format(item.amount)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -403,7 +442,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                     Icon(isCurrentlyPaid ? Icons.check_circle : Icons.pending, size: 14, color: isCurrentlyPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                     const SizedBox(width: 6),
                     Text(
-                      'Status: ${isCurrentlyPaid ? AppStrings.t(provider.settings.appLanguage, en: "Paid", gu: "ચૂકતે થયેલ", hi: "भुगतान किया") : AppStrings.t(provider.settings.appLanguage, en: "Pending", gu: "બાકી", hi: "लंबित")}',
+                      'Payment Status: ${isCurrentlyPaid ? AppStrings.t(lang, en: "Paid to Supplier", gu: "સપ્લાયરને ચૂકતે થયેલ", hi: "सप्लायर को भुगतान किया") : AppStrings.t(lang, en: "Payable to Supplier / Due", gu: "સપ્લાયરને ચૂકવવાનું બાકી", hi: "सप्लायर को देय बाकी")}',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isCurrentlyPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                     ),
                   ],
@@ -419,14 +458,14 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
             if (!isCurrentlyPaid)
               ElevatedButton.icon(
                 icon: const Icon(Icons.check_circle_outline, size: 16),
-                label: Text(AppStrings.t(provider.settings.appLanguage, en: 'Mark as Paid', gu: 'ચૂકતે કરો', hi: 'भुगतान')),
+                label: Text(AppStrings.t(lang, en: 'Mark as Paid to Supplier', gu: 'સપ્લાયરને ચૂકવી દીધું', hi: 'सप्लायर को भुगतान किया')),
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white),
                 onPressed: () async {
                   Navigator.of(ctx).pop();
                   await provider.updateMaterialItemPaymentStatus(item.id!, 'Paid');
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${item.productName} marked as Paid.'), backgroundColor: const Color(0xFF10B981)),
+                      SnackBar(content: Text('${item.productName} marked as Paid to Supplier.'), backgroundColor: const Color(0xFF10B981)),
                     );
                   }
                 },
@@ -434,14 +473,14 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
             if (isCurrentlyPaid)
               ElevatedButton.icon(
                 icon: const Icon(Icons.timelapse, size: 16),
-                label: Text(AppStrings.t(provider.settings.appLanguage, en: 'Mark as Pending', gu: 'બાકી રાખો', hi: 'लंबित')),
+                label: Text(AppStrings.t(lang, en: 'Keep as Payable', gu: 'સપ્લાયરને ચૂકવવાનું બાકી રાખો', hi: 'सप्लायर को देय बाकी रखें')),
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
                 onPressed: () async {
                   Navigator.of(ctx).pop();
                   await provider.updateMaterialItemPaymentStatus(item.id!, 'Pending');
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${item.productName} marked as Pending.'), backgroundColor: const Color(0xFFEF4444)),
+                      SnackBar(content: Text('${item.productName} marked as Payable to Supplier.'), backgroundColor: const Color(0xFFEF4444)),
                     );
                   }
                 },
@@ -452,21 +491,28 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
     );
   }
 
-  // Mark all pending orders for this supplier as paid
+  // Mark all pending raw material purchase orders for this supplier as paid by company
   void _confirmMarkAllPaid(BuildContext context, String supplierName) {
     final provider = context.read<ProductionProvider>();
+    final lang = provider.settings.appLanguage;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 22),
-            SizedBox(width: 8),
-            Text('Mark All as Paid?'),
+            const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 22),
+            const SizedBox(width: 8),
+            Text(AppStrings.t(lang,
+              en: 'Mark All Paid to Supplier?',
+              gu: 'વેપારીને તમામ બિલો ચૂકતે કરો?',
+              hi: 'सप्लायर को सभी बिल भुगतान करें?')),
           ],
         ),
-        content: Text(AppStrings.t(provider.settings.appLanguage, en: 'Do you want to mark all pending challans and items for "$supplierName" as Paid?', gu: 'શું તમે "$supplierName" ના તમામ પેન્ડિંગ ચલણ ચૂકતે કરવા માંગો છો?', hi: 'क्या आप "$supplierName" के सभी लंबित चालान भुगतान चिह्नित करना चाहते हैं?')),
+        content: Text(AppStrings.t(provider.settings.appLanguage,
+          en: 'Confirm payment to supplier "$supplierName" for all pending raw material purchase challans? This marks all purchase bills as paid by OM MAVTAR GROUP.',
+          gu: 'શું તમે વેપારી "$supplierName" ના કાચા માલ ખરીદીના તમામ પેન્ડિંગ ચલણ કંપની દ્વારા ચૂકતે (Paid to Supplier) કરવા માંગો છો?',
+          hi: 'क्या आप सप्लायर "$supplierName" के कच्चे माल खरीद के सभी लंबित चालान कंपनी द्वारा भुगतान किए गए (Paid to Supplier) चिह्नित करना चाहते हैं?')),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
           ElevatedButton(
@@ -477,13 +523,13 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('All orders for "$supplierName" marked as Paid.'),
+                    content: Text('All purchase bills for "$supplierName" marked as Paid to Supplier.'),
                     backgroundColor: const Color(0xFF10B981),
                   ),
                 );
               }
             },
-            child: const Text('Yes, Mark Paid'),
+            child: Text(AppStrings.t(lang, en: 'Yes, Mark Paid to Supplier', gu: 'હા, ચૂકતે કરો', hi: 'हाँ, भुगतान चिह्नित करें')),
           ),
         ],
       ),
@@ -752,6 +798,8 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                 : provider.getFilteredMaterialsForCategory('Dhaga')));
 
     final totalAmount = activeTabItems.fold<double>(0.0, (s, m) => s + m.amount);
+    final paidAmount = activeTabItems.where((m) => m.isPaid).fold<double>(0.0, (s, m) => s + m.amount);
+    final pendingAmount = activeTabItems.where((m) => !m.isPaid).fold<double>(0.0, (s, m) => s + m.amount);
     final totalQty = activeTabItems.fold<double>(0.0, (s, m) => s + m.qty);
     final activeChallansCount = activeTabItems.map((m) => '${m.formattedDate}_${m.challanNo}').toSet().length;
 
@@ -771,7 +819,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                     color: accent.withValues(alpha: isDark ? 0.3 : 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.category_rounded, size: 24, color: accent),
+                  child: Icon(Icons.shopping_bag_rounded, size: 24, color: accent),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -779,7 +827,10 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        AppStrings.t(provider.settings.appLanguage, en: 'Material Section', gu: 'મટીરીયલ લેજર તેમજ પ્રોડક્ટ્સ', hi: 'सामग्री प्रबंधन एवं लेजर'),
+                        AppStrings.t(provider.settings.appLanguage,
+                          en: 'Material Purchases & Challan Ledger',
+                          gu: 'કાચો માલ ખરીદી અને ચલણ હિસાબ',
+                          hi: 'कच्चा माल खरीद एवं चालान लेजर'),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
@@ -790,9 +841,9 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                       const SizedBox(height: 2),
                       Text(
                         AppStrings.t(lang,
-                            en: 'Challan Register, Sequence, Beads, Thread & One-time Product Rate Master',
-                            gu: 'ચલણ રજીસ્ટર, સીક્વન્સ, મોતી, દોરા / ધાગા અને પ્રોડક્ટ રેટ માસ્ટર',
-                            hi: 'चालान रजिस्टर, सीक्वेंस, मोती, धागा और उत्पाद दर मास्टर'),
+                          en: 'Company purchases raw materials (Sequence, Beads, Thread) from suppliers on challan • Track purchase bills & payments payable to vendors',
+                          gu: 'કંપની દ્વારા વેપારીઓ પાસેથી કાચા માલની ખરીદી (દોરા, સીક્વન્સ, મોતી) • ખરીદી ચલણ બિલ અને સપ્લાયરને ચૂકવવાપાત્ર હિસાબ',
+                          hi: 'कंपनी द्वारा सप्लायरों से कच्चा माल खरीद (धागा, सीक्वेंस, मोती) • खरीद चालान बिल और सप्लायरों को देय भुगतान'),
                         style: TextStyle(fontSize: 12, color: AppTheme.textMuted(context)),
                       ),
                     ],
@@ -802,7 +853,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                 ElevatedButton.icon(
                   onPressed: () => _openAddSupplier(),
                   icon: const Icon(Icons.storefront_rounded, size: 16),
-                  label: const Text('New Supplier'),
+                  label: Text(AppStrings.t(lang, en: 'New Supplier', gu: 'નવો વેપારી', hi: 'नया सप्लायर')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.surfaceSubtle(context),
                     foregroundColor: AppTheme.textPrimary(context),
@@ -815,7 +866,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                 ElevatedButton.icon(
                   onPressed: () => _openAddProduct(),
                   icon: const Icon(Icons.inventory_2_outlined, size: 16),
-                  label: const Text('New Product Master'),
+                  label: Text(AppStrings.t(lang, en: 'New Product Master', gu: 'પ્રોડક્ટ માસ્ટર', hi: 'उत्पाद मास्टर')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.surfaceSubtle(context),
                     foregroundColor: AppTheme.textPrimary(context),
@@ -827,8 +878,11 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () => _openAddEntry(),
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Material Entry'),
+                  icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+                  label: Text(AppStrings.t(lang,
+                    en: '+ Purchase Challan Entry',
+                    gu: '+ ખરીદી ચલણ એન્ટ્રી',
+                    hi: '+ खरीद चालान प्रविष्टि')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accent,
                     foregroundColor: AppTheme.contrastText(accent),
@@ -865,7 +919,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                 _buildSupplierStatementBanner(context, provider, accent),
                 const SizedBox(height: 14),
               ] else ...[
-                _buildKpiStrip(context, totalAmount, totalQty, activeTabItems.length, activeChallansCount),
+                _buildKpiStrip(context, totalAmount, paidAmount, pendingAmount, totalQty, activeTabItems.length, activeChallansCount),
                 const SizedBox(height: 14),
               ],
             ],
@@ -1437,7 +1491,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${AppStrings.t(provider.settings.appLanguage, en: "Supplier Order Statement & Ledger", gu: "ઓર્ડર વિગત અને હિસાબ", hi: "सप्लायर ऑर्डर लेजर एवं हिसाब")}'
+                      '${AppStrings.t(provider.settings.appLanguage, en: "Supplier Order Statement & Ledger (Raw Material Purchases)", gu: "ઓર્ડર વિગત અને હિસાબ (કાચો માલ ખરીદી)", hi: "सप्लायर ऑर्डर लेजर एवं हिसाब (कच्चा माल खरीद)")}'
                       '${supp != null && supp.phone.isNotEmpty ? " • 📞 ${supp.phone}" : ""}'
                       '${supp != null && supp.city.isNotEmpty ? " • 📍 ${supp.city}" : ""}',
                       style: TextStyle(fontSize: 11.5, color: AppTheme.textMuted(context)),
@@ -1483,7 +1537,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                     ElevatedButton.icon(
                       onPressed: () => _confirmMarkAllPaid(context, supplierName),
                       icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
-                      label: Text(AppStrings.t(provider.settings.appLanguage, en: 'Mark All as Paid', gu: 'બધા ચૂકતે કરો', hi: 'सभी भुगतान करें')),
+                      label: Text(AppStrings.t(provider.settings.appLanguage, en: 'Mark All Paid to Supplier', gu: 'બધા ચૂકતે કરો', hi: 'सभी भुगतान करें')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF10B981),
                         foregroundColor: Colors.white,
@@ -1510,13 +1564,13 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
           // Bottom Row: 3 Financial Metrics Strip
           Row(
             children: [
-              _miniKpi(context, AppStrings.t(provider.settings.appLanguage, en: 'Total Purchases', gu: 'કુલ ખરીદી', hi: 'कुल खरीद'), '₹ ${NumberFormat("#,##,###.00").format(totalPurchases)}', const Color(0xFF2563EB)),
+              _miniKpi(context, AppStrings.t(provider.settings.appLanguage, en: 'Total Purchases', gu: 'કુલ ખરીદી બિલ', hi: 'कुल खरीद बिल'), '₹ ${NumberFormat("#,##,###.00").format(totalPurchases)}', const Color(0xFF2563EB)),
               const SizedBox(width: 12),
-              _miniKpi(context, AppStrings.t(provider.settings.appLanguage, en: 'Total Paid', gu: 'ચૂકતે રકમ', hi: 'भुगतान की गई रकम'), '₹ ${NumberFormat("#,##,###.00").format(paidAmount)}', const Color(0xFF10B981)),
+              _miniKpi(context, AppStrings.t(provider.settings.appLanguage, en: 'Paid to Supplier', gu: 'સપ્લાયરને ચૂકવેલ', hi: 'सप्लायर को भुगतान'), '₹ ${NumberFormat("#,##,###.00").format(paidAmount)}', const Color(0xFF10B981)),
               const SizedBox(width: 12),
               _miniKpi(
                 context,
-                AppStrings.t(provider.settings.appLanguage, en: 'Pending Balance Due', gu: 'બાકી રકમ', hi: 'बकाया राशि'),
+                AppStrings.t(provider.settings.appLanguage, en: 'Payable Balance Due', gu: 'સપ્લાયરને ચૂકવવાનું બાકી', hi: 'सप्लायर को देय बाकी'),
                 '₹ ${NumberFormat("#,##,###.00").format(pendingAmount)}',
                 pendingAmount > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
               ),
@@ -1527,18 +1581,53 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
     );
   }
 
-  // 4. KPI Summary Strip
-  Widget _buildKpiStrip(BuildContext context, double totalAmount, double totalQty, int totalItems, int totalChallans) {
+  // 4. KPI Summary Strip (5 Essential Metrics for Raw Material Purchases & Accounts Payable)
+  Widget _buildKpiStrip(
+    BuildContext context,
+    double totalAmount,
+    double paidAmount,
+    double pendingAmount,
+    double totalQty,
+    int totalItems,
+    int totalChallans,
+  ) {
     final lang = context.watch<ProductionProvider>().settings.appLanguage;
     return Row(
       children: [
-        _miniKpi(context, AppStrings.t(lang, en: 'Total Amount', gu: 'કુલ રકમ', hi: 'कुल रकम'), '₹ ${NumberFormat('#,##,###.00').format(totalAmount)}', const Color(0xFF10B981)),
-        const SizedBox(width: 12),
-        _miniKpi(context, AppStrings.t(lang, en: 'Total Quantity', gu: 'કુલ માત્રા', hi: 'कुल मात्रा'), '${NumberFormat('#,##,###.00').format(totalQty)} units', const Color(0xFF2563EB)),
-        const SizedBox(width: 12),
-        _miniKpi(context, AppStrings.t(lang, en: 'Total Items', gu: 'કુલ આઇટમ્સ', hi: 'कुल आइटम्स'), '$totalItems Records', const Color(0xFFF59E0B)),
-        const SizedBox(width: 12),
-        _miniKpi(context, AppStrings.t(lang, en: 'Active Challans', gu: 'ચલાન સંખ્યા', hi: 'सक्रिय चालान'), '$totalChallans Challans', const Color(0xFF8B5CF6)),
+        _miniKpi(
+          context,
+          AppStrings.t(lang, en: 'Total Purchases', gu: 'કુલ ખરીદી બિલ', hi: 'कुल खरीद बिल'),
+          '₹ ${NumberFormat('#,##,###.00').format(totalAmount)}',
+          const Color(0xFF2563EB),
+        ),
+        const SizedBox(width: 10),
+        _miniKpi(
+          context,
+          AppStrings.t(lang, en: 'Paid to Suppliers', gu: 'સપ્લાયરને ચૂકવેલ', hi: 'सप्लायर को भुगतान'),
+          '₹ ${NumberFormat('#,##,###.00').format(paidAmount)}',
+          const Color(0xFF10B981),
+        ),
+        const SizedBox(width: 10),
+        _miniKpi(
+          context,
+          AppStrings.t(lang, en: 'Payable Balance Due', gu: 'સપ્લાયરને ચૂકવવાનું બાકી', hi: 'सप्लायर को देय बाकी'),
+          '₹ ${NumberFormat('#,##,###.00').format(pendingAmount)}',
+          pendingAmount > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+        ),
+        const SizedBox(width: 10),
+        _miniKpi(
+          context,
+          AppStrings.t(lang, en: 'Inward Stock / Qty', gu: 'ખરીદી જથ્થો (આવક)', hi: 'खरीद मात्रा (आवक)'),
+          '${NumberFormat('#,##,###.00').format(totalQty)} units',
+          const Color(0xFFF59E0B),
+        ),
+        const SizedBox(width: 10),
+        _miniKpi(
+          context,
+          AppStrings.t(lang, en: 'Purchase Challans', gu: 'ખરીદી ચલણ સંખ્યા', hi: 'खरीद चालान संख्या'),
+          '$totalChallans Challans',
+          const Color(0xFF8B5CF6),
+        ),
       ],
     );
   }
@@ -1633,13 +1722,13 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                   ),
                 ),
                 Expanded(flex: 11, child: Text(AppStrings.t(lang, en: 'Date', gu: 'તારીખ', hi: 'तारीख'), style: headerStyle)),
-                Expanded(flex: 13, child: Text('Challan #', style: headerStyle)),
-                Expanded(flex: 19, child: Text(AppStrings.t(lang, en: 'Supplier / Party', gu: 'વેપારી / પાર્ટી', hi: 'सप्लायर / पार्टी'), style: headerStyle)),
-                Expanded(flex: 17, child: Text('Categories', style: headerStyle)),
-                Expanded(flex: 11, child: Text('Total Qty', style: headerStyle, textAlign: TextAlign.right)),
-                Expanded(flex: 15, child: Text('Challan Total (₹)', style: headerStyle, textAlign: TextAlign.right)),
-                Expanded(flex: 13, child: Text('Payment Status', style: headerStyle, textAlign: TextAlign.center)),
-                Expanded(flex: 8, child: Text('Details', style: headerStyle, textAlign: TextAlign.center)),
+                Expanded(flex: 12, child: Text('Challan #', style: headerStyle)),
+                Expanded(flex: 18, child: Text(AppStrings.t(lang, en: 'Supplier / Vendor', gu: 'વેપારી (સપ્લાયર)', hi: 'सप्लायर / व्यापारी'), style: headerStyle)),
+                Expanded(flex: 14, child: Text('Categories', style: headerStyle)),
+                Expanded(flex: 11, child: Text(AppStrings.t(lang, en: 'Inward Qty', gu: 'ખરીદી જથ્થો', hi: 'आवक मात्रा'), style: headerStyle, textAlign: TextAlign.right)),
+                Expanded(flex: 15, child: Text(AppStrings.t(lang, en: 'Purchase Bill (₹)', gu: 'ખરીદી બિલ (₹)', hi: 'खरीद बिल (₹)'), style: headerStyle, textAlign: TextAlign.right)),
+                Expanded(flex: 16, child: Text(AppStrings.t(lang, en: 'Payment to Supplier', gu: 'સપ્લાયરને ચૂકવણી', hi: 'सप्लायर को भुगतान'), style: headerStyle, textAlign: TextAlign.center)),
+                Expanded(flex: 7, child: Text('Details', style: headerStyle, textAlign: TextAlign.center)),
               ],
             ),
           ),
@@ -1790,58 +1879,71 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                           ),
                           // 7. Payment Status Clickable Chip
                           Expanded(
-                            flex: 13,
+                            flex: 16,
                             child: Center(
-                              child: InkWell(
-                                onTap: () => _showPaymentStatusToggleDialog(context, ch),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                                  decoration: BoxDecoration(
-                                    color: isPaid
-                                        ? const Color(0xFF10B981).withValues(alpha: 0.14)
-                                        : isPartial
-                                            ? const Color(0xFFF59E0B).withValues(alpha: 0.14)
-                                            : const Color(0xFFEF4444).withValues(alpha: 0.14),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
+                              child: Tooltip(
+                                message: isPaid
+                                    ? 'Paid to Supplier ${ch.supplierName} (સપ્લાયરને ચૂકવી દીધેલ)'
+                                    : 'Payable to Supplier ${ch.supplierName} (સપ્લાયરને ચૂકવવાનું બાકી)',
+                                child: InkWell(
+                                  onTap: () => _showPaymentStatusToggleDialog(context, ch),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                    decoration: BoxDecoration(
                                       color: isPaid
-                                          ? const Color(0xFF10B981).withValues(alpha: 0.45)
+                                          ? const Color(0xFF10B981).withValues(alpha: 0.14)
                                           : isPartial
-                                              ? const Color(0xFFF59E0B).withValues(alpha: 0.45)
-                                              : const Color(0xFFEF4444).withValues(alpha: 0.45),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        isPaid
-                                            ? Icons.check_circle_rounded
-                                            : isPartial
-                                                ? Icons.timelapse_rounded
-                                                : Icons.pending_rounded,
-                                        size: 12,
+                                              ? const Color(0xFFF59E0B).withValues(alpha: 0.14)
+                                              : const Color(0xFFEF4444).withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
                                         color: isPaid
-                                            ? const Color(0xFF10B981)
+                                            ? const Color(0xFF10B981).withValues(alpha: 0.45)
                                             : isPartial
-                                                ? const Color(0xFFF59E0B)
-                                                : const Color(0xFFEF4444),
+                                                ? const Color(0xFFF59E0B).withValues(alpha: 0.45)
+                                                : const Color(0xFFEF4444).withValues(alpha: 0.45),
                                       ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        isPaid ? 'Paid' : isPartial ? 'Partial' : 'Pending',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isPaid
+                                              ? Icons.check_circle_rounded
+                                              : isPartial
+                                                  ? Icons.timelapse_rounded
+                                                  : Icons.pending_rounded,
+                                          size: 12,
                                           color: isPaid
                                               ? const Color(0xFF10B981)
                                               : isPartial
                                                   ? const Color(0xFFF59E0B)
                                                   : const Color(0xFFEF4444),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 4),
+                                        Flexible(
+                                          child: Text(
+                                            isPaid
+                                                ? AppStrings.t(lang, en: 'Paid', gu: 'ચૂકતે', hi: 'भुगतान')
+                                                : isPartial
+                                                    ? AppStrings.t(lang, en: 'Partial', gu: 'અંશતઃ', hi: 'आंशिक')
+                                                    : AppStrings.t(lang, en: 'Pending', gu: 'બાકી', hi: 'लंबित'),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: isPaid
+                                                  ? const Color(0xFF10B981)
+                                                  : isPartial
+                                                      ? const Color(0xFFF59E0B)
+                                                      : const Color(0xFFEF4444),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1849,7 +1951,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                           ),
                           // 8. Action: View Details
                           Expanded(
-                            flex: 8,
+                            flex: 7,
                             child: Center(
                               child: IconButton(
                                 icon: const Icon(Icons.visibility_rounded, size: 17),
@@ -1880,6 +1982,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
   // Tabs 1, 2, 3: Category Items (Sequence, Beads, Dhaga)
   Widget _buildCategoryItemsTab(BuildContext context, String category, Color catColor) {
     final provider = context.watch<ProductionProvider>();
+    final lang = provider.settings.appLanguage;
     final items = provider.getFilteredMaterialsForCategory(category);
 
     if (items.isEmpty) {
@@ -1945,12 +2048,12 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                 ),
                 Expanded(flex: 14, child: Text('Date / Challan #', style: headerStyle)),
                 Expanded(flex: 22, child: Text('Product & Specs', style: headerStyle)),
-                Expanded(flex: 16, child: Text('Supplier / Party', style: headerStyle)),
-                Expanded(flex: 11, child: Text('Quantity', style: headerStyle, textAlign: TextAlign.right)),
+                Expanded(flex: 16, child: Text(AppStrings.t(lang, en: 'Supplier / Vendor', gu: 'વેપારી (સપ્લાયર)', hi: 'सप्लायर / व्यापारी'), style: headerStyle)),
+                Expanded(flex: 11, child: Text(AppStrings.t(lang, en: 'Purchased Qty', gu: 'ખરીદી જથ્થો', hi: 'खरीद मात्रा'), style: headerStyle, textAlign: TextAlign.right)),
                 Expanded(flex: 9, child: Text('Rate (₹)', style: headerStyle, textAlign: TextAlign.right)),
-                Expanded(flex: 13, child: Text('Amount (₹)', style: headerStyle, textAlign: TextAlign.right)),
-                Expanded(flex: 11, child: Text('Payment', style: headerStyle, textAlign: TextAlign.center)),
-                Expanded(flex: 10, child: Text('Actions', style: headerStyle, textAlign: TextAlign.center)),
+                Expanded(flex: 13, child: Text(AppStrings.t(lang, en: 'Purchase Amt (₹)', gu: 'ખરીદી રકમ (₹)', hi: 'खरीद राशि (₹)'), style: headerStyle, textAlign: TextAlign.right)),
+                Expanded(flex: 13, child: Text(AppStrings.t(lang, en: 'Payment to Supplier', gu: 'સપ્લાયરને ચૂકવણી', hi: 'सप्लायर को भुगतान'), style: headerStyle, textAlign: TextAlign.center)),
+                Expanded(flex: 8, child: Text('Actions', style: headerStyle, textAlign: TextAlign.center)),
               ],
             ),
           ),
@@ -2082,42 +2185,53 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                           ),
                           // 7. Payment Status Chip
                           Expanded(
-                            flex: 11,
+                            flex: 13,
                             child: Center(
-                              child: InkWell(
-                                onTap: () => _showItemPaymentStatusToggleDialog(context, item),
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: isPaid
-                                        ? const Color(0xFF10B981).withValues(alpha: 0.14)
-                                        : const Color(0xFFEF4444).withValues(alpha: 0.14),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
+                              child: Tooltip(
+                                message: isPaid
+                                    ? 'Paid to Supplier ${item.supplierName} (સપ્લાયરને ચૂકવી દીધેલ)'
+                                    : 'Payable to Supplier ${item.supplierName} (સપ્લાયરને ચૂકવવાનું બાકી)',
+                                child: InkWell(
+                                  onTap: () => _showItemPaymentStatusToggleDialog(context, item),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                    decoration: BoxDecoration(
                                       color: isPaid
-                                          ? const Color(0xFF10B981).withValues(alpha: 0.45)
-                                          : const Color(0xFFEF4444).withValues(alpha: 0.45),
+                                          ? const Color(0xFF10B981).withValues(alpha: 0.14)
+                                          : const Color(0xFFEF4444).withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: isPaid
+                                            ? const Color(0xFF10B981).withValues(alpha: 0.45)
+                                            : const Color(0xFFEF4444).withValues(alpha: 0.45),
+                                      ),
                                     ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        isPaid ? Icons.check_circle_rounded : Icons.pending_rounded,
-                                        size: 11,
-                                        color: isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        isPaid ? 'Paid' : 'Pending',
-                                        style: TextStyle(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.bold,
-                                          color: item.isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isPaid ? Icons.check_circle_rounded : Icons.pending_rounded,
+                                          size: 11,
+                                          color: isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 4),
+                                        Flexible(
+                                          child: Text(
+                                            isPaid
+                                                ? AppStrings.t(lang, en: 'Paid', gu: 'ચૂકતે', hi: 'भुगतान')
+                                                : AppStrings.t(lang, en: 'Pending', gu: 'બાકી', hi: 'लंबित'),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: item.isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -2125,7 +2239,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                           ),
                           // 8. Actions
                           Expanded(
-                            flex: 10,
+                            flex: 8,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,

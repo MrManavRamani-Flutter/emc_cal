@@ -148,11 +148,11 @@ class ExcelExporter {
 
     // Title Row
     sheet.appendRow([
-      TextCellValue('${companyName ?? "OM MAVTAR GROUP"} - SUPPLIER ORDER STATEMENT & LEDGER')
+      TextCellValue('${companyName ?? "OM MAVTAR GROUP"} (BUYER) - SUPPLIER RAW MATERIAL PURCHASES & PAYMENT LEDGER')
     ]);
 
     // Supplier Info Subtitle
-    final supplierSubtitle = 'Supplier: $supplierName'
+    final supplierSubtitle = 'Supplier / Vendor: $supplierName'
         '${phone != null && phone.isNotEmpty ? " • Phone: $phone" : ""}'
         '${city != null && city.isNotEmpty ? " • City: $city" : ""}'
         ' • Generated: ${DateFormat("dd-MMM-yyyy hh:mm a").format(DateTime.now())}';
@@ -161,8 +161,8 @@ class ExcelExporter {
     // Summary Metric Row
     final summaryText = 'Challans: $uniqueChallans | Total Items: ${items.length} | '
         'Total Purchases: $currencySymbol ${totalAmount.toStringAsFixed(2)} | '
-        'Paid: $currencySymbol ${paidAmount.toStringAsFixed(2)} | '
-        'Pending Due: $currencySymbol ${pendingAmount.toStringAsFixed(2)}';
+        'Paid to Supplier: $currencySymbol ${paidAmount.toStringAsFixed(2)} | '
+        'Payable Due to Supplier: $currencySymbol ${pendingAmount.toStringAsFixed(2)}';
     sheet.appendRow([TextCellValue(summaryText)]);
     sheet.appendRow([]); // Blank row
 
@@ -178,8 +178,8 @@ class ExcelExporter {
       TextCellValue('Meters'),
       TextCellValue('Quantity'),
       TextCellValue('Rate ($currencySymbol)'),
-      TextCellValue('Total Amount ($currencySymbol)'),
-      TextCellValue('Payment Status'),
+      TextCellValue('Purchase Amount ($currencySymbol)'),
+      TextCellValue('Payment to Supplier'),
       TextCellValue('Payment Date'),
       TextCellValue('Notes'),
     ]);
@@ -199,7 +199,7 @@ class ExcelExporter {
         DoubleCellValue(double.parse(item.qty.toStringAsFixed(2))),
         DoubleCellValue(double.parse(item.rate.toStringAsFixed(2))),
         DoubleCellValue(double.parse(item.amount.toStringAsFixed(2))),
-        TextCellValue(item.isPaid ? 'PAID' : 'PENDING'),
+        TextCellValue(item.isPaid ? 'PAID TO SUPPLIER' : 'PAYABLE / DUE'),
         TextCellValue(item.formattedPaymentDate ?? '—'),
         TextCellValue(item.notes),
       ]);

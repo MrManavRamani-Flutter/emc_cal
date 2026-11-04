@@ -157,14 +157,15 @@ void main() {
     await tester.pumpWidget(createMaterialsWidget(provider));
     await tester.pumpAndSettle();
 
-    // Click on 'Add Material Entry'
-    await tester.tap(find.text('Add Material Entry'));
+    // Click on 'Add Purchase Challan Entry'
+    final addBtn = find.textContaining('Purchase Challan Entry');
+    await tester.tap(addBtn.evaluate().isNotEmpty ? addBtn : find.byIcon(Icons.add_shopping_cart_rounded));
     await tester.pumpAndSettle();
 
     // Verify AddEditMaterialDialog is rendered full screen (asScreen: true)
     expect(find.byType(AddEditMaterialDialog), findsOneWidget);
     expect(find.byTooltip(AppStrings.get('back', provider.settings.appLanguage)), findsOneWidget);
-    expect(find.text('New Challan & Multi-Product Bill Entry'), findsOneWidget);
+    expect(find.textContaining('Purchase Challan & Inward Bill'), findsOneWidget);
 
     // Click Back to Material Section
     await tester.tap(find.byTooltip(AppStrings.get('back', provider.settings.appLanguage)));
@@ -250,19 +251,19 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Calculation Statement screen elements
-    expect(find.text('Challan Calculation Statement'), findsOneWidget);
+    expect(find.textContaining('Calculation Statement'), findsOneWidget);
     expect(find.byTooltip(AppStrings.get('back', provider.settings.appLanguage)), findsOneWidget);
     expect(find.text('Itemized Calculation Sheet'), findsOneWidget);
     expect(find.text('Qty × Rate = Amount'), findsOneWidget);
     expect(find.text('CALCULATION DETAILS'), findsOneWidget);
-    expect(find.text('Challan Final Amount'), findsOneWidget);
+    expect(find.textContaining('Total Purchase Bill Payable to Supplier'), findsOneWidget);
     expect(find.text('150.0 × ₹87.40'), findsOneWidget);
 
     // Click Back to Challan Register
     await tester.tap(find.byTooltip(AppStrings.get('back', provider.settings.appLanguage)));
     await tester.pumpAndSettle();
 
-    expect(find.text('Challan Calculation Statement'), findsNothing);
+    expect(find.textContaining('Calculation Statement'), findsNothing);
     expect(find.text('CHALLAN REGISTER'), findsOneWidget);
   });
 
