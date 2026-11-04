@@ -7,6 +7,7 @@ import '../../core/localization/app_strings.dart';
 import '../../core/utils/safe_range_utils.dart';
 import '../../models/expense_model.dart';
 import '../../providers/production_provider.dart';
+import 'manage_expense_categories_dialog.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -47,8 +48,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
     final notesController = TextEditingController(text: existing?.notes ?? '');
     final paidByController = TextEditingController(text: existing?.paidBy ?? '');
+    final customCategoryController = TextEditingController();
 
-    String selectedCategory = existing?.category ?? 'ELECTRICITY';
+    final categoriesList = provider.expenseCategories;
+    String selectedCategory = existing?.category ?? (categoriesList.isNotEmpty ? categoriesList.first : 'LIGHT_BILL');
+    bool isCustomCategory = false;
     String selectedMode = existing?.paymentMode ?? 'Cash';
     DateTime selectedDate = existing?.date ?? DateTime.now();
 
@@ -151,29 +155,93 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           Expanded(
                             flex: 6,
                             child: DropdownButtonFormField<String>(
-                              initialValue: selectedCategory,
+                              // ignore: deprecated_member_use
+                              value: isCustomCategory
+                                  ? '__NEW__'
+                                  : (categoriesList.contains(selectedCategory) ? selectedCategory : 'OTHER'),
                               decoration: InputDecoration(
                                 labelText: AppStrings.t(lang, en: 'Category', gu: 'કેટેગરી', hi: 'श्रेणी'),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               ),
-                              items: ExpenseCategories.all.map((cat) {
-                                return DropdownMenuItem(
-                                  value: cat,
-                                  child: Text(
-                                    ExpenseCategories.format(cat),
-                                    style: const TextStyle(fontSize: 13),
-                                    overflow: TextOverflow.ellipsis,
+                              items: [
+                                ...categoriesList.map((cat) {
+                                  return DropdownMenuItem(
+                                    value: cat,
+                                    child: Text(
+                                      ExpenseCategories.getLabel(cat, lang),
+                                      style: const TextStyle(fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }),
+                                DropdownMenuItem(
+                                  value: '__NEW__',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.add_circle_outline_rounded, size: 16, color: Color(0xFFEF4444)),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        AppStrings.t(lang, en: '➕ Add Category...', gu: '➕ નવી કેટેગરી...', hi: '➕ नई श्रेणी...'),
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFEF4444)),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                              ],
                               onChanged: (val) {
-                                if (val != null) setDialogState(() => selectedCategory = val);
+                                if (val == '__NEW__') {
+                                  setDialogState(() {
+                                    isCustomCategory = true;
+                                  });
+                                } else if (val != null) {
+                                  setDialogState(() {
+                                    isCustomCategory = false;
+                                    selectedCategory = val;
+                                  });
+                                }
                               },
                             ),
                           ),
                         ],
                       ),
+                      if (isCustomCategory) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: customCategoryController,
+                          autofocus: true,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF0F172A),
+                          ),
+                          decoration: InputDecoration(
+                            labelText: '${AppStrings.t(lang, en: 'Enter New Category Name', gu: 'નવી કેટેગરીનું નામ લખો', hi: 'नई श्रेणी का नाम दर्ज करें')} *',
+                            hintText: AppStrings.t(lang,
+                                en: 'e.g. Generator Diesel, Packing Box...',
+                                gu: 'દા.ત. જનરેટર ડીઝલ, પેકિંગ બોક્સ...',
+                                hi: 'उदा. जनरेटर डीजल, पैकिंग बॉक्स...'),
+                            prefixIcon: const Icon(Icons.new_label_rounded, size: 18, color: Color(0xFFEF4444)),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              tooltip: 'Cancel',
+                              onPressed: () {
+                                setDialogState(() {
+                                  isCustomCategory = false;
+                                  selectedCategory = categoriesList.first;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                          validator: (val) {
+                            if (isCustomCategory && (val == null || val.trim().isEmpty)) {
+                              return 'Please enter new category name';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 14),
 
                       // Date & Payment Mode in Row
@@ -270,13 +338,24 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   final notes = notesController.text.trim();
                   final paidBy = paidByController.text.trim();
 
+                  String finalCategory = selectedCategory;
+                  if (isCustomCategory) {
+                    final customText = customCategoryController.text.trim();
+                    if (customText.isNotEmpty) {
+                      final upperKey = customText.toUpperCase().replaceAll(' ', '_');
+                      await provider.addExpenseCategory(upperKey);
+                      finalCategory = upperKey;
+                    }
+                  }
+
+                  if (!ctx.mounted) return;
                   Navigator.of(ctx).pop();
 
                   final exp = ExpenseModel(
                     id: existing?.id,
                     title: title,
                     amount: amount,
-                    category: selectedCategory,
+                    category: finalCategory,
                     date: selectedDate,
                     notes: notes,
                     paymentMode: selectedMode,
@@ -319,6 +398,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           );
         },
       ),
+    );
+  }
+
+  void _openManageCategoriesDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => const ManageExpenseCategoriesDialog(),
     );
   }
 
@@ -499,6 +585,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ],
                   ),
                 ),
+                OutlinedButton.icon(
+                  onPressed: _openManageCategoriesDialog,
+                  icon: const Icon(Icons.tune_rounded, size: 16, color: Color(0xFF6366F1)),
+                  label: Text(
+                    AppStrings.t(lang, en: 'Manage Categories', gu: 'કેટેગરી મેનેજ કરો', hi: 'श्रेणियां प्रबंधित करें'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    side: BorderSide(color: isDark ? const Color(0xFF6366F1).withValues(alpha: 0.5) : const Color(0xFFC7D2FE)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    backgroundColor: isDark ? const Color(0xFF1E1B4B).withValues(alpha: 0.5) : const Color(0xFFEEF2FF),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 ElevatedButton.icon(
                   onPressed: () => _openAddEditExpenseDialog(),
                   icon: const Icon(Icons.add_rounded, size: 18),
@@ -664,12 +765,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                 }),
                               ),
                               const SizedBox(width: 8),
-                              ...ExpenseCategories.all.map((cat) {
+                              ...provider.expenseCategories.map((cat) {
                                 final isSelected = _selectedCategory == cat;
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 8),
                                   child: FilterChip(
-                                    label: Text(ExpenseCategories.format(cat)),
+                                    label: Text(ExpenseCategories.getLabel(cat, lang)),
                                     selected: isSelected,
                                     onSelected: (_) => setState(() {
                                       _selectedCategory = cat;
@@ -786,7 +887,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Text(
-                                          ExpenseCategories.format(exp.category),
+                                          ExpenseCategories.getLabel(exp.category, lang),
                                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
                                           overflow: TextOverflow.ellipsis,
                                         ),

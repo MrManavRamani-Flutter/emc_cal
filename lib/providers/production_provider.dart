@@ -1928,7 +1928,57 @@ class ProductionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<String> get expenseCategories => _settings.expenseCategories;
+
+  Future<void> addExpenseCategory(String newCategory) async {
+    final trimmed = newCategory.trim().toUpperCase();
+    if (trimmed.isEmpty) return;
+    if (_settings.expenseCategories.any((c) => c.trim().toUpperCase() == trimmed)) return;
+    final updatedList = List<String>.from(_settings.expenseCategories.map((c) => c.trim().toUpperCase()))..add(trimmed);
+    _settings = _settings.copyWith(expenseCategories: updatedList);
+    await _db.saveSettings(_settings);
+    notifyListeners();
+  }
+
+  Future<void> updateExpenseCategory(String oldCategory, String newCategory) async {
+    final trimmed = newCategory.trim().toUpperCase();
+    final oldTrimmed = oldCategory.trim().toUpperCase();
+    if (trimmed.isEmpty || oldTrimmed == trimmed) return;
+    final updatedList = _settings.expenseCategories
+        .map((c) => c.trim().toUpperCase() == oldTrimmed ? trimmed : c.trim().toUpperCase())
+        .toSet()
+        .toList();
+    _settings = _settings.copyWith(expenseCategories: updatedList);
+    await _db.saveSettings(_settings);
+
+    final db = await _db.database;
+    await db.rawUpdate('UPDATE expenses SET category = ? WHERE UPPER(TRIM(category)) = ?', [trimmed, oldTrimmed]);
+    await loadExpenses();
+    notifyListeners();
+  }
+
+  Future<void> deleteExpenseCategory(String category) async {
+    final target = category.trim().toUpperCase();
+    final updatedList = _settings.expenseCategories.where((c) => c.trim().toUpperCase() != target).toList();
+    if (updatedList.isEmpty) return;
+    _settings = _settings.copyWith(expenseCategories: updatedList);
+    await _db.saveSettings(_settings);
+    notifyListeners();
+  }
+
+  Future<void> resetExpenseCategoriesToDefault() async {
+    _settings = _settings.copyWith(expenseCategories: SettingsModel.defaultExpenseCategories);
+    await _db.saveSettings(_settings);
+    notifyListeners();
+  }
+
   Future<void> addExpense(ExpenseModel expense) async {
+    final cat = expense.category.trim().toUpperCase();
+    if (cat.isNotEmpty && !_settings.expenseCategories.any((c) => c.trim().toUpperCase() == cat)) {
+      final updatedList = List<String>.from(_settings.expenseCategories.map((c) => c.trim().toUpperCase()))..add(cat);
+      _settings = _settings.copyWith(expenseCategories: updatedList);
+      await _db.saveSettings(_settings);
+    }
     final id = await _db.insertExpense(expense);
     final saved = expense.copyWith(id: id);
     _expenses.insert(0, saved);

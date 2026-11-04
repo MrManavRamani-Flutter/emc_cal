@@ -116,6 +116,7 @@ class DatabaseHelper {
             is_dark_mode INTEGER DEFAULT 0,
             theme_color_hex TEXT DEFAULT '#0066FF',
             employee_roles TEXT DEFAULT 'Operator,Master,Karigar,Helper,Designer,Checker,Manager,Other',
+            expense_categories TEXT DEFAULT '',
             sender_phone TEXT DEFAULT '',
             whatsapp_auto_send INTEGER DEFAULT 0,
             whatsapp_message_language TEXT DEFAULT 'English',
@@ -534,6 +535,9 @@ class DatabaseHelper {
     } catch (_) {}
     try {
       await db.execute("ALTER TABLE settings ADD COLUMN font_scale REAL DEFAULT 1.0");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE settings ADD COLUMN expense_categories TEXT DEFAULT ''");
     } catch (_) {}
 
     try {
@@ -1164,6 +1168,7 @@ class DatabaseHelper {
       'isDarkMode': 'is_dark_mode',
       'themeColorHex': 'theme_color_hex',
       'employeeRoles': 'employee_roles',
+      'expenseCategories': 'expense_categories',
       'senderPhone': 'sender_phone',
       'whatsappAutoSend': 'whatsapp_auto_send',
       'whatsappMessageLanguage': 'whatsapp_message_language',

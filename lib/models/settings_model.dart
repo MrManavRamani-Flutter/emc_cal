@@ -12,6 +12,7 @@ class SettingsModel {
   final bool isDarkMode;
   final String themeColorHex;
   final List<String> employeeRoles;
+  final List<String> expenseCategories;
   final String senderPhone;
   final bool whatsappAutoSend;
   final String whatsappMessageLanguage;
@@ -29,6 +30,28 @@ class SettingsModel {
     'OTHER',
   ];
 
+  static const List<String> defaultExpenseCategories = [
+    'LIGHT_BILL',
+    'RENT',
+    'MACHINE_REPAIR',
+    'MACHINE_OIL',
+    'TEA_SNACKS',
+    'TRANSPORT_TEMPO',
+    'PETROL_CONVEYANCE',
+    'BOBBIN_ACCESSORIES',
+    'THREAD_CUTTING',
+    'OFFICE_EXPENSE',
+    'COMPUTER_WIFI',
+    'CURTAINS_COVERS',
+    'WATER_EXPENSE',
+    'IRONING_FOLDING',
+    'ELECTRIC_MAINTENANCE',
+    'CLIENT_HOSPITALITY',
+    'NEW_MACHINERY',
+    'PETTY_CASH',
+    'OTHER',
+  ];
+
   SettingsModel({
     this.companyName = 'OM MAVTAR GROUP',
     this.operatorName = 'Single User',
@@ -43,6 +66,7 @@ class SettingsModel {
     this.isDarkMode = false,
     this.themeColorHex = '#0066FF',
     this.employeeRoles = defaultRoles,
+    this.expenseCategories = defaultExpenseCategories,
     this.senderPhone = '',
     this.whatsappAutoSend = false,
     this.whatsappMessageLanguage = 'English',
@@ -64,6 +88,7 @@ class SettingsModel {
     bool? isDarkMode,
     String? themeColorHex,
     List<String>? employeeRoles,
+    List<String>? expenseCategories,
     String? senderPhone,
     bool? whatsappAutoSend,
     String? whatsappMessageLanguage,
@@ -86,6 +111,9 @@ class SettingsModel {
       employeeRoles: employeeRoles != null
           ? employeeRoles.map((e) => e.trim().toUpperCase()).where((e) => e.isNotEmpty).toSet().toList()
           : this.employeeRoles,
+      expenseCategories: expenseCategories != null
+          ? expenseCategories.map((e) => e.trim().toUpperCase()).where((e) => e.isNotEmpty).toSet().toList()
+          : this.expenseCategories,
       senderPhone: senderPhone ?? this.senderPhone,
       whatsappAutoSend: whatsappAutoSend ?? this.whatsappAutoSend,
       whatsappMessageLanguage: whatsappMessageLanguage ?? this.whatsappMessageLanguage,
@@ -109,6 +137,7 @@ class SettingsModel {
       'is_dark_mode': isDarkMode ? 1 : 0,
       'theme_color_hex': themeColorHex,
       'employee_roles': employeeRoles.join(','),
+      'expense_categories': expenseCategories.join(','),
       'sender_phone': senderPhone,
       'whatsapp_auto_send': whatsappAutoSend ? 1 : 0,
       'whatsapp_message_language': whatsappMessageLanguage,
@@ -145,6 +174,19 @@ class SettingsModel {
       return SettingsModel.defaultRoles;
     }
 
+    List<String> parseExpenseCategories(dynamic val) {
+      if (val is String && val.trim().isNotEmpty) {
+        final list = val
+            .split(',')
+            .map((e) => e.trim().toUpperCase())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList();
+        if (list.isNotEmpty) return list;
+      }
+      return SettingsModel.defaultExpenseCategories;
+    }
+
     return SettingsModel(
       companyName: map['company_name'] as String? ?? 'OM MAVTAR GROUP',
       operatorName: map['operator_name'] as String? ?? 'Single User',
@@ -159,6 +201,7 @@ class SettingsModel {
       isDarkMode: (map['is_dark_mode'] as num?)?.toInt() == 1,
       themeColorHex: map['theme_color_hex'] as String? ?? '#0066FF',
       employeeRoles: parseRoles(map['employee_roles']),
+      expenseCategories: parseExpenseCategories(map['expense_categories']),
       senderPhone: map['sender_phone'] as String? ?? '',
       whatsappAutoSend: (map['whatsapp_auto_send'] as num?)?.toInt() == 1,
       whatsappMessageLanguage: () {

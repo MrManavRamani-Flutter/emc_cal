@@ -2,7 +2,7 @@
 
 > **વર્ઝન:** v1.0.0 Desktop Production Ready  
 > **આર્કિટેક્ચર:** 100% Offline Local SQLite Database (Zero Internet Dependency, Instant Speed)  
-> **ટેસ્ટિંગ ક્વોલિટી:** 148 / 148 Automated Tests Passed (100% Green) | 0 Analyze Issues  
+> **ટેસ્ટિંગ ક્વોલિટી:** 151 / 151 Automated Tests Passed (100% Green) | 0 Analyze Issues  
 > **છેલ્લું અપડેટ:** 04 નવેમ્બર 2026  
 
 ---
@@ -14,12 +14,12 @@
 | **કોર પ્રોડક્શન સિસ્ટમ (Production Entry & Batch)** | ✅ પૂર્ણ | **100%** | સ્ટીચ કેલ્ક્યુલેશન, ડે/નાઇટ, બેચ મેટ્રિક્સ, ફુલ સ્ક્રીન |
 | **કારીગર પગાર અને ઉપાડ (Employees & Salary)** | ✅ પૂર્ણ | **100%** | રોલ મેનેજમેન્ટ (UPPERCASE), ઉપાડ લેજર, સ્લિપ |
 | **ગ્રાહક જોબવર્ક બિલિંગ (Customers & Invoices)** | ✅ પૂર્ણ | **100%** | ઇન્વોઇસિંગ, અડધા/હપ્તા પેમેન્ટ કલેક્શન (Partial) |
-| **કાચો માલ ખરીદી (Materials & Challan)** | ✅ પૂર્ણ | **100%** | સપ્લાયર ચલણ, વેપારીને ચુકવણી (50% Half/Partial) |
-| **કારખાના ખર્ચ (Factory Expenses)** | ✅ પૂર્ણ | **100%** | ૭ કેટેગરી ખર્ચાઓ, ફિલ્ટર્સ અને માસિક હિસાબ |
+| **કાચો માલ ખરીદી (Materials & Challan)** | ✅ પૂર્ણ | **100%** | સપ્લાયર ચલણ, વેપારી પેમેન્ટ (Partial), ઓથેન્ટિક સ્લિપ PDF |
+| **કારખાના ખર્ચ (Factory Expenses & 18 Categories)** | ✅ પૂર્ણ | **100%** | ૧૮ ઓથેન્ટિક કારખાના કેટેગરીઝ, ડાયનેમિક એડ/મેનેજ, ફિલ્ટર્સ |
 | **નાણાકીય ગણતરી (Income vs Expense Math)** | ✅ પૂર્ણ | **100%** | ચોખ્ખો નફો (Net Profit), કેશ-ઇન-હેન્ડ ફ્લો |
 | **તમામ ટેબલ્સ સોર્ટિંગ & પેજીનેશન** | ✅ પૂર્ણ | **100%** | Asc/Desc ક્લિક સોર્ટિંગ, "Show All" વ્યૂ |
 | **બેકઅપ અને ડેટા રીસ્ટોર (Backup & Restore)** | ✅ પૂર્ણ | **100%** | ખાલી સિસ્ટમમાં પણ નિર્દોષ રીસ્ટોર, સુરક્ષિત JSON |
-| **ડેસ્કટોપ UI / સાઇડબાર કસ્ટમાઇઝેશન** | ✅ પૂર્ણ | **100%** | શોર્ટ નામો (No Ellipsis), macOS પ્રિન્ટ/PDF ફિક્સ |
+| **ડેસ્કટોપ UI / સાઇડબાર કસ્ટમાઇઝેશન** | ✅ પૂર્ણ | **100%** | શોર્ટ નામો (No Ellipsis), macOS પ્રિન્ટ/PDF સપોર્ટ |
 | **ઓનલાઇન / ક્લાઉડ સિંક (Cloud Multi-Device Sync)** | ⏳ બાકી (Roadmap) | **0% (Planned)** | ભવિષ્ય માટે સુપ્રીમ આર્કિટેક્ચર તૈયાર |
 | **રોલ બેઇઝ્ડ યુઝર એક્સેસ (Admin vs Operator Lock)** | ⏳ બાકી (Roadmap) | **0% (Planned)** | PIN / Password લોગિન પ્રોટેક્શન |
 | **ડાયરેક્ટ થર્મલ USB ESC/POS પ્રિન્ટિંગ** | ⏳ બાકી (Roadmap) | **30% (Partial)** | PDF પ્રિન્ટ રેડી છે; ડાયરેક્ટ રૉ USB સ્ટ્રીમ બાકી |
@@ -80,8 +80,44 @@
 
 ### ૮. સાઇડબાર અને macOS ડેસ્કટોપ UI (Sidebar Optimization)
 - [x] **ટૂંકા નામો (Short Crisp Names):** સાઇડબારમાં લાંબા નામો (જેવા કે `Employees & Advances`, `Raw Material Purchases`) કાપીને ટૂંકા નામો (`Employees`, `Materials`, `Customers`, `Accounts`, `Expenses`, `Production`) સેટ કર્યા જેથી ત્રણેય ભાષાઓ (English, Gujarati, Hindi) માં ક્યાંય પણ લખાણ કપાતું નથી (`...` આવતું નથી).
-- [x] **macOS પ્રિન્ટ ડાયલોગ એરર સોલ્યુશન:** સિસ્ટમ પ્રિન્ટિંગ બ્લોક થવાને બદલે હવે ૧-ક્લિકમાં સ્વચ્છ PDF બનીને પ્રિવ્યુમાં ખુલે છે, જ્યાંથી ⌘P આપીને તરત જ પ્રિન્ટ કરી શકાય છે.
+- [x] **macOS પ્રિન્ટ ડાયલોગ એરર સોલ્યુશન:** `com.apple.security.print` સેન્ડબોક્સ પરમિશન ઉમેરી તથા ૧-ક્લિકમાં સ્વચ્છ PDF પ્રિવ્યુમાં ખુલે છે, જ્યાંથી ⌘P આપીને પ્રિન્ટ કરી શકાય છે.
 - [x] **સુરક્ષિત પેજીનેશન (`SafeRangeUtils`):** લિસ્ટ ક્લેમ્પિંગ અને રેન્જ એરર પ્રોટેક્શનથી સિસ્ટમ ક્યારેય અનપેક્ષિત રીતે ક્રેશ થતી નથી.
+
+---
+
+### ૯. કાચો માલ ઓથેન્ટિક ચલણ PDF ફોર્મેટ (Authentic Challan PDF Slips)
+- [x] **ઓરિજિનલ સ્લિપ ડિઝાઇન:** સુરતના કાચા માલના વેપારીઓની અસલ ચલણ રસીદ (જેવી કે ભગવતી જરી, ખુશી ફેશન) જેવી જ સેપરેટ A4/A5 PDF રસીદ તૈયાર કરી.
+- [x] **આઇટમ-લેવલ ૧-ક્લિક PDF:** દરેક મટીરીયલ લાઇન આઇટમ માટે સ્વતંત્ર PDF બટન જેથી માત્ર એ જ આઇટમનું સેપરેટ બિલ પણ જનરેટ કરી શકાય છે.
+- [x] **સંપૂર્ણ વિગતો:** Challan No, Date, Time, M/s Om Mavtar, Phone, Supplier Info, Sr No, Product Name, Shade No, Qty, Rate, Amount, Total Amount, Terms & Conditions, Receiver Signature અને Authorised Signatory.
+
+---
+
+### ૧૦. કારખાનાના વાસ્તવિક ૧૮ ખર્ચ કેટેગરીઝ (Authentic 18 Factory Expense Categories)
+- [x] **યુઝરની ડાયરી મુજબ ૧૮ કેટેગરીઝ:**
+  1. 🪙 અંદરનો પરચૂરણ ખર્ચ (Petty Cash)
+  2. 🚚 ટેમ્પો ભાડું & ટ્રાન્સપોર્ટ (Tempo Freight)
+  3. 🤝 ગ્રાહક સેવા & સાચવણી (Client Hospitality)
+  4. 🖨️ ઓફિસ ખર્ચ & સ્ટેશનરી (Office Expenses)
+  5. 🪟 પડદા / કવર / મોઝા (Curtains & Dust Covers)
+  6. 🧵 બોબીન & સાધનો / જાડા બોબીન (Bobbin & Accessories)
+  7. 💧 પીવાનું પાણી & પાણી વેરો (Drinking Water & Water Tax)
+  8. ⛽ પેટ્રોલ & ઉઘરાણી ખર્ચ (Petrol & Conveyance)
+  9. ⚙️ મશીન રીપેરિંગ & પાર્ટ્સ (Machine Repairs & Spares)
+  10. ✂️ દોરા કટિંગનો કટ્ટો (Thread Cutting Charges)
+  11. 🏢 કારખાના ગોડાઉન ભાડું (Factory / Godown Rent)
+  12. ⚡ લાઈટબિલ / પાવર યુનિટ્સ (Electricity / Power Bill)
+  13. ☕ ચા-પાણી તેમજ બપોરી નાસ્તો (Tea, Water & Afternoon Snacks)
+  14. 👔 ઇસ્ત્રી & ફોલ્ડિંગ ખર્ચ (Ironing & Folding Work)
+  15. 💻 વાઇફાઇ & કમ્પ્યુટર મેન્ટેનન્સ (Computer, Wi-Fi & IT)
+  16. 🔌 વીજળી વાયરિંગ મેન્ટેનન્સ (Electrical Wiring Maintenance)
+  17. 🏭 નવી મશીનરી & સાધન (New Machinery & Equipment)
+  18. 🛢️ મશીન ઓઇલિંગ - તેલ (Machine Oil & Lubrication)
+  19. 📦 અન્ય કારખાના ખર્ચ (Other Factory Expenses)
+- [x] **ડાયનેમિક એડ અને મેનેજમેન્ટ:**
+  - જો લિસ્ટમાં ન હોય તો યુઝર `➕ Add Category...` સિલેક્ટ કરીને નવું નામ ઉમેરી શકે છે.
+  - ખર્ચ સ્ક્રીન પર `Manage Categories` બટન આપ્યું છે, જ્યાંથી કોઈપણ કેટેગરી એડિટ, ડિલીટ કે ડિફોલ્ટ રીસેટ કરી શકાય છે.
+  - સિસ્ટમમાં સેટિંગ્સ ડેટાબેઝમાં સાચવી રાખવામાં આવે છે.
+
 
 ---
 
@@ -154,6 +190,6 @@
 ## 🛠️ ટેકનિકલ સ્ટેટસ
 
 - **Flutter Analyze:** `No issues found! (0 errors, 0 warnings)`
-- **Automated Tests:** `All 148 tests passed!`
+- **Automated Tests:** `All 151 tests passed!`
 - **macOS Binary:** Installed and running live at `/Users/manavramani/Desktop/OM MAVTAR GROUP.app`
 - **Data Persistence:** 100% Local SQLite with zero external dependencies.
