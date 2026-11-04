@@ -4,11 +4,11 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
 import '../../core/localization/app_strings.dart';
+import '../../data/database_helper.dart';
 import '../../providers/production_provider.dart';
 import '../../widgets/app_snack_bar.dart';
 
@@ -58,9 +58,9 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           userCanceled = true;
         }
       } catch (pickerErr) {
-        // Fallback to Documents/EmbroideryProductionCalculator/Backups/
-        final appDocDir = await getApplicationDocumentsDirectory();
-        final backupDir = Directory('${appDocDir.path}/EmbroideryProductionCalculator/Backups');
+        // Fallback to Storage/Backups/
+        final storageDir = await DatabaseHelper.getStorageDirectory();
+        final backupDir = Directory('${storageDir.path}/Backups');
         if (!await backupDir.exists()) {
           await backupDir.create(recursive: true);
         }
@@ -354,8 +354,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         if (!isMerge) {
           try {
             final safetyJson = await provider.exportBackupJson();
-            final appDocDir = await getApplicationDocumentsDirectory();
-            final safetyDir = Directory('${appDocDir.path}/EmbroideryProductionCalculator/AutoSafetyBackups');
+            final storageDir = await DatabaseHelper.getStorageDirectory();
+            final safetyDir = Directory('${storageDir.path}/AutoSafetyBackups');
             if (!await safetyDir.exists()) {
               await safetyDir.create(recursive: true);
             }

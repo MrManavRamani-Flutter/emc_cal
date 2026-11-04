@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -9,6 +10,7 @@ import 'package:printing/printing.dart';
 import '../models/challan_summary.dart';
 import '../models/material_item.dart';
 import '../models/expense_model.dart';
+import 'database_helper.dart';
 
 class PdfExporter {
   /// Converts a numeric amount to English words (Indian numbering system)
@@ -1011,21 +1013,23 @@ class PdfExporter {
     );
   }
 
-  /// Fallback: saves PDF to Documents/PDF_Statements and opens in system default viewer (Preview)
+  /// Fallback: saves PDF to Storage/PDF_Statements and opens in system default viewer
   static Future<String?> _fallbackSaveAndOpenPdf({
     required Uint8List pdfBytes,
     required String filename,
   }) async {
     try {
-      final docs = await getApplicationDocumentsDirectory();
-      final pdfDir = Directory('${docs.path}/EmbroideryProductionCalculator/PDF_Statements');
+      final baseDir = await DatabaseHelper.getStorageDirectory();
+      final pdfDir = Directory(p.join(baseDir.path, 'PDF_Statements'));
       if (!await pdfDir.exists()) {
         await pdfDir.create(recursive: true);
       }
-      final file = File('${pdfDir.path}/$filename');
+      final file = File(p.join(pdfDir.path, filename));
       await file.writeAsBytes(pdfBytes);
       if (Platform.isMacOS) {
         await Process.run('open', [file.path]);
+      } else if (Platform.isWindows) {
+        await Process.run('cmd', ['/c', 'start', '', file.path]);
       }
       return file.path;
     } catch (_) {
