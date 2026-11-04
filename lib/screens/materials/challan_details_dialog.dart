@@ -135,9 +135,10 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
     try {
       final savedPath = await PdfExporter.exportAndOpenChallanInvoicePdf(
         challan: summary,
-        companyName: 'OM MAVTAR GROUP',
+        companyName: prov.settings.companyName.isEmpty ? 'OM MAVTAR GROUP' : prov.settings.companyName,
         supplierPhone: supp?.phone,
         supplierCity: supp?.city,
+        supplierGst: supp?.gstNo,
       );
       if (context.mounted && savedPath != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -152,6 +153,41 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error generating PDF bill: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _printSingleItemPdf(BuildContext context, MaterialItem item) async {
+    final prov = context.read<ProductionProvider>();
+    Supplier? supp;
+    try {
+      supp = prov.suppliers.firstWhere(
+        (s) => s.name.trim().toLowerCase() == item.supplierName.trim().toLowerCase(),
+      );
+    } catch (_) {}
+
+    try {
+      final savedPath = await PdfExporter.exportAndOpenMaterialItemPdf(
+        item: item,
+        companyName: prov.settings.companyName.isEmpty ? 'OM MAVTAR GROUP' : prov.settings.companyName,
+        supplierPhone: supp?.phone,
+        supplierCity: supp?.city,
+        supplierGst: supp?.gstNo,
+      );
+      if (context.mounted && savedPath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Item PDF Challan opened in Preview! Saved to: $savedPath'),
+            backgroundColor: const Color(0xFF059669),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating item PDF: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -2075,6 +2111,12 @@ class _ChallanDetailsDialogState extends State<ChallanDetailsDialog> {
               const SizedBox(width: 8),
 
               // Actions
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf_outlined, size: 18, color: Color(0xFFDC2626)),
+                tooltip: 'Print Item PDF Challan',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _printSingleItemPdf(context, item),
+              ),
               IconButton(
                 icon: const Icon(Icons.edit_outlined, size: 18),
                 tooltip: 'Edit item',

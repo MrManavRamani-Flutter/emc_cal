@@ -112,6 +112,37 @@ void main() {
 
       expect(challanPdfBytes, isNotNull);
       expect(challanPdfBytes.isNotEmpty, isTrue);
+
+      // Verify authentic amount in words helper
+      expect(PdfExporter.amountInWords(8433.00), 'Eight Thousand Four Hundred Thirty Three Rupees Only');
+      expect(PdfExporter.amountInWords(20945.60), 'Twenty Thousand Nine Hundred Forty Five Rupees And Sixty Paise Only');
+
+      // Verify separate material item challan generation
+      final singleItemChallan = ChallanSummary(
+        challanNo: '4043',
+        date: DateTime(2026, 11, 1),
+        supplierName: 'BHAGWATI JARI',
+        items: [
+          MaterialItem(
+            id: 14,
+            challanNo: '4043',
+            supplierName: 'BHAGWATI JARI',
+            date: DateTime(2026, 11, 1),
+            category: 'Thread',
+            productName: 'GOLDAN SAMK JARI 200G',
+            itemType: 'cone',
+            qty: 120.0,
+            rate: 115.0,
+            amount: 13800.0,
+          ),
+        ],
+      );
+      final singleItemPdf = await PdfExporter.generateChallanInvoicePdf(
+        challan: singleItemChallan,
+        supplierPhone: '9737211542',
+        supplierCity: '109, HARI OM IND. ESTATE, AANJANA FARM, SURAT',
+      );
+      expect(singleItemPdf.isNotEmpty, isTrue);
     });
 
     test('ChallanSummary and Provider correctly track Paid vs Pending balances', () {

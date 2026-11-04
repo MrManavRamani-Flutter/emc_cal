@@ -208,6 +208,42 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
     }
   }
 
+  // Export Single Item PDF Challan (Surat Textile Paper Format)
+  Future<void> _printSingleItemChallanPdf(MaterialItem item) async {
+    final provider = context.read<ProductionProvider>();
+    Supplier? supp;
+    try {
+      supp = provider.suppliers.firstWhere(
+        (s) => s.name.trim().toLowerCase() == item.supplierName.trim().toLowerCase(),
+      );
+    } catch (_) {}
+
+    try {
+      final savedPath = await PdfExporter.exportAndOpenMaterialItemPdf(
+        item: item,
+        companyName: provider.settings.companyName.isEmpty ? 'OM MAVTAR GROUP' : provider.settings.companyName,
+        supplierPhone: supp?.phone,
+        supplierCity: supp?.city,
+        supplierGst: supp?.gstNo,
+      );
+      if (mounted && savedPath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Item PDF Challan opened in Preview! Saved to: $savedPath'),
+            backgroundColor: const Color(0xFF059669),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating item PDF: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   // Export Supplier Excel Sheet
   Future<void> _exportSupplierExcel(BuildContext context, String supplierName) async {
     final provider = context.read<ProductionProvider>();
@@ -2053,7 +2089,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                 Expanded(flex: 9, child: Text('Rate (₹)', style: headerStyle, textAlign: TextAlign.right)),
                 Expanded(flex: 13, child: Text(AppStrings.t(lang, en: 'Purchase Amt (₹)', gu: 'ખરીદી રકમ (₹)', hi: 'खरीद राशि (₹)'), style: headerStyle, textAlign: TextAlign.right)),
                 Expanded(flex: 13, child: Text(AppStrings.t(lang, en: 'Payment to Supplier', gu: 'સપ્લાયરને ચૂકવણી', hi: 'सप्लायर को भुगतान'), style: headerStyle, textAlign: TextAlign.center)),
-                Expanded(flex: 8, child: Text('Actions', style: headerStyle, textAlign: TextAlign.center)),
+                Expanded(flex: 10, child: Text('Actions', style: headerStyle, textAlign: TextAlign.center)),
               ],
             ),
           ),
@@ -2239,26 +2275,45 @@ class _MaterialsScreenState extends State<MaterialsScreen> with SingleTickerProv
                           ),
                           // 8. Actions
                           Expanded(
-                            flex: 8,
+                            flex: 10,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit_outlined, size: 16),
-                                  tooltip: 'Edit',
-                                  visualDensity: VisualDensity.compact,
-                                  constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                                  padding: EdgeInsets.zero,
-                                  onPressed: () => _openEditEntry(item),
+                                Tooltip(
+                                  message: 'Print Item PDF Challan',
+                                  child: InkWell(
+                                    onTap: () => _printSingleItemChallanPdf(item),
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Icon(Icons.picture_as_pdf_outlined, size: 15, color: Color(0xFFDC2626)),
+                                    ),
+                                  ),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.dangerRedDark),
-                                  tooltip: 'Delete',
-                                  visualDensity: VisualDensity.compact,
-                                  constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                                  padding: EdgeInsets.zero,
-                                  onPressed: () => _confirmDeleteItem(item),
+                                const SizedBox(width: 2),
+                                Tooltip(
+                                  message: 'Edit',
+                                  child: InkWell(
+                                    onTap: () => _openEditEntry(item),
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Icon(Icons.edit_outlined, size: 15),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                Tooltip(
+                                  message: 'Delete',
+                                  child: InkWell(
+                                    onTap: () => _confirmDeleteItem(item),
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Icon(Icons.delete_outline_rounded, size: 15, color: AppTheme.dangerRedDark),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),

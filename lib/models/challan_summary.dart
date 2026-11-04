@@ -21,6 +21,7 @@ class ChallanSummary {
 
   double get paidAmount => items.fold(0.0, (sum, i) => sum + i.paidAmount);
   double get pendingAmount => (totalAmount - paidAmount).clamp(0.0, double.infinity);
+  double get remainingAmount => pendingAmount;
 
   bool get isPaid => items.isNotEmpty && paidAmount >= totalAmount && totalAmount > 0;
   bool get isPartiallyPaid => paidAmount > 0 && paidAmount < totalAmount;
